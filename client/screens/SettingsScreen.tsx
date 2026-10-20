@@ -224,7 +224,7 @@ function SpotifyLoginSection() {
           ) : null}
           {Platform.OS === "web" ? (
             <ThemedText style={[styles.sectionText, { color: theme.textSecondary, fontSize: 12, marginTop: Spacing.xs }]}>
-              The app connects automatically after you log in. If it doesn't, tap "Refresh Connection".
+              {"The app connects automatically after you log in. If it doesn't, tap \"Refresh Connection\"."}
             </ThemedText>
           ) : null}
         </>
@@ -282,8 +282,8 @@ function GameModeSection() {
 
   const gameModes: { value: GameMode; label: string; description: string }[] = [
     { value: "simple", label: "Simple", description: "Play random songs and reveal" },
-    { value: "singleplayer", label: "Single Player", description: "Build a chain of 8 songs in order" },
-    { value: "team", label: "Team Mode", description: "Teams compete to build chains" },
+    { value: "singleplayer", label: "Single Player", description: "Build the longest chain you can until you make a mistake" },
+    { value: "team", label: "Team Mode", description: "Take turns; a mistake knocks a team out, longest chain wins" },
   ];
 
   const orderingModes: { value: OrderingMode; label: string }[] = [

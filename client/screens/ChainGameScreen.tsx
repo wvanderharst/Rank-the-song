@@ -52,7 +52,19 @@ type TeamState = {
   name: string;
   chain: ChainSong[];
   score: number;
+  // Out of the game after placing a song wrong.
+  out: boolean;
 };
+
+// Next team after `fromIndex` that is still in the game (can be the same
+// team when it is the only one left), or -1 when every team is out.
+function nextActiveTeamIndex(teams: TeamState[], fromIndex: number): number {
+  for (let step = 1; step <= teams.length; step++) {
+    const idx = (fromIndex + step) % teams.length;
+    if (!teams[idx].out) return idx;
+  }
+  return -1;
+}
 
 function GameButton({
   onPress,
@@ -364,7 +376,7 @@ function ChainDisplay({
           Your chain will appear here
         </ThemedText>
         <ThemedText style={[styles.chainEmptySubtext, { color: theme.textSecondary }]}>
-          Build a chain of 8 songs
+          Keep going until you make a mistake
         </ThemedText>
       </View>
     );
@@ -466,7 +478,7 @@ function TeamIndicator({ teams, currentTeam }: { teams: TeamState[]; currentTeam
               { color: idx === currentTeam ? "#FFFFFF" : theme.primary },
             ]}
           >
-            {team.name}: {team.chain.length}/8
+            {team.name}: {team.chain.length}{team.out ? " (out)" : ""}
           </ThemedText>
         </View>
       ))}
@@ -488,6 +500,8 @@ export default function ChainGameScreen() {
   const [songsPlayed, setSongsPlayed] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [winner, setWinner] = useState<string | null>(null);
+  // Every team has made its mistake; the next button shows the result.
+  const [allTeamsOut, setAllTeamsOut] = useState(false);
   const [waitingForNextSong, setWaitingForNextSong] = useState(false);
   const [awaitingSecondChance, setAwaitingSecondChance] = useState(false);
   const [lastSelectedPosition, setLastSelectedPosition] = useState<number | null>(null);
@@ -500,9 +514,10 @@ export default function ChainGameScreen() {
         name: `Team ${i + 1}`,
         chain: [] as ChainSong[],
         score: 0,
+        out: false,
       }));
     }
-    return [{ id: 0, name: "Player", chain: [] as ChainSong[], score: 0 }];
+    return [{ id: 0, name: "Player", chain: [] as ChainSong[], score: 0, out: false }];
   }, [gameMode, teamCount]);
 
   const [teams, setTeams] = useState<TeamState[]>(initialTeams);
@@ -513,6 +528,7 @@ export default function ChainGameScreen() {
     setCurrentTeamIndex(0);
     setGameOver(false);
     setWinner(null);
+    setAllTeamsOut(false);
     setUsedSongIds(new Set());
     setSongsPlayed(0);
     setIsRevealed(false);
@@ -593,14 +609,40 @@ export default function ChainGameScreen() {
       }
       return team;
     }));
+  };
 
-    const updatedChainLength = currentTeam.chain.length + 1;
-    if (updatedChainLength >= 8) {
-      setGameOver(true);
-      setWinner(currentTeam.name);
-      return true;
+  // Wrong placement: the current player/team is out. The game ends once every
+  // team is out; until then the remaining teams keep taking turns.
+  const handleMistake = () => {
+    const updatedTeams = teams.map((team, idx) =>
+      idx === currentTeamIndex ? { ...team, out: true } : team
+    );
+    setTeams(updatedTeams);
+    setIsRevealed(true);
+
+    const nextTeam = nextActiveTeamIndex(updatedTeams, currentTeamIndex);
+    if (nextTeam === -1) {
+      setAllTeamsOut(true);
+    } else {
+      setCurrentTeamIndex(nextTeam);
     }
-    return false;
+    setWaitingForNextSong(true);
+  };
+
+  const passTurn = () => {
+    if (gameMode === "team") {
+      const nextTeam = nextActiveTeamIndex(teams, currentTeamIndex);
+      if (nextTeam !== -1) {
+        setCurrentTeamIndex(nextTeam);
+      }
+    }
+  };
+
+  // The longest chain wins; equal chains share the win.
+  const finishGame = () => {
+    const best = Math.max(...teams.map((team) => team.chain.length));
+    setWinner(teams.filter((team) => team.chain.length === best).map((team) => team.name).join(" & "));
+    setGameOver(true);
   };
 
   const handleInsertPosition = (position: number) => {
@@ -611,23 +653,15 @@ export default function ChainGameScreen() {
     
     if (isCorrect) {
       setIsRevealed(true);
-      const gameEnded = addSongToChain(position);
-      if (gameEnded) return;
-      
-      if (gameMode === "team") {
-        setCurrentTeamIndex((prev) => (prev + 1) % teams.length);
-      }
+      addSongToChain(position);
+      passTurn();
       setWaitingForNextSong(true);
     } else {
       if (chainDifficulty === "easy" && !usedSecondChance) {
         setAwaitingSecondChance(true);
         setIsSelectingPosition(false);
       } else {
-        setIsRevealed(true);
-        if (gameMode === "team") {
-          setCurrentTeamIndex((prev) => (prev + 1) % teams.length);
-        }
-        setWaitingForNextSong(true);
+        handleMistake();
       }
     }
   };
@@ -640,11 +674,7 @@ export default function ChainGameScreen() {
 
   const handleSecondChanceNo = () => {
     setAwaitingSecondChance(false);
-    setIsRevealed(true);
-    if (gameMode === "team") {
-      setCurrentTeamIndex((prev) => (prev + 1) % teams.length);
-    }
-    setWaitingForNextSong(true);
+    handleMistake();
   };
 
   const handleNextSong = () => {
@@ -667,9 +697,7 @@ export default function ChainGameScreen() {
   };
 
   const handleSkip = () => {
-    if (gameMode === "team") {
-      setCurrentTeamIndex((prev) => (prev + 1) % teams.length);
-    }
+    passTurn();
 
     setIsSelectingPosition(false);
     setIsRevealed(false);
@@ -693,6 +721,7 @@ export default function ChainGameScreen() {
     setSongsPlayed(0);
     setGameOver(false);
     setWinner(null);
+    setAllTeamsOut(false);
     setIsRevealed(false);
     setIsSelectingPosition(false);
     setWaitingForNextSong(false);
@@ -711,6 +740,8 @@ export default function ChainGameScreen() {
     }
   };
 
+  const bestChainLength = Math.max(...teams.map((team) => team.chain.length));
+
   if (gameOver) {
     return (
       <ThemedView
@@ -724,13 +755,15 @@ export default function ChainGameScreen() {
       >
         <View style={styles.gameOverContainer}>
           <ThemedText style={[styles.gameOverTitle, { color: theme.primary }]}>
-            Game Complete!
+            Game Over!
           </ThemedText>
           <ThemedText style={styles.gameOverWinner}>
-            {winner} wins!
+            {gameMode === "team"
+              ? `${winner} ${winner?.includes(" & ") ? "win" : "wins"} with ${bestChainLength} songs!`
+              : `Your chain: ${bestChainLength} songs`}
           </ThemedText>
           <ThemedText style={[styles.gameOverScore, { color: theme.textSecondary }]}>
-            Completed in {songsPlayed} songs
+            Songs played: {songsPlayed}
           </ThemedText>
           <View style={styles.gameOverButtons}>
             <GameButton onPress={handleRestart} title="Play Again" variant="primary" />
@@ -761,7 +794,7 @@ export default function ChainGameScreen() {
           {currentTeam.name}
         </ThemedText>
         <ThemedText style={[styles.scoreValue, { color: theme.primary }]}>
-          {currentTeam.chain.length}/8
+          {currentTeam.chain.length}
         </ThemedText>
         <View style={{ flex: 1 }} />
         <ThemedText style={[styles.scoreLabel, { color: theme.textSecondary }]}>
@@ -827,7 +860,7 @@ export default function ChainGameScreen() {
                 style={[styles.secondChanceButton, { backgroundColor: "#ef4444" }]}
                 onPress={handleSecondChanceNo}
               >
-                <ThemedText style={styles.secondChanceButtonText}>No - Next Song</ThemedText>
+                <ThemedText style={styles.secondChanceButtonText}>{"No - I'm Out"}</ThemedText>
               </Pressable>
             </View>
           </Animated.View>
@@ -854,8 +887,8 @@ export default function ChainGameScreen() {
       <View style={styles.buttonsContainer}>
         {waitingForNextSong ? (
           <GameButton
-            onPress={handleNextSong}
-            title="Next Song"
+            onPress={allTeamsOut ? finishGame : handleNextSong}
+            title={allTeamsOut ? "See Result" : "Next Song"}
             variant="primary"
           />
         ) : !awaitingSecondChance ? (
