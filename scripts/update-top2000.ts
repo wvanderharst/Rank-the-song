@@ -19,6 +19,7 @@
 //   YOUTUBE_API_KEY            optional, for YouTube lookups (YouTube Data API v3)
 //   YOUTUBE_SEARCH_LIMIT       YouTube searches per run (default 90; 100 quota units each)
 //   FAIL_IF_NOT_FOUND          "true": exit with an error when the list is not published yet
+//   DRY_RUN                    "true": only find the list and try a few lookups; write nothing
 
 import * as fs from "fs";
 import * as path from "path";
@@ -50,7 +51,10 @@ const PENDING_DIR = path.join(ROOT, "server", "songcsv", "top2000");
 const YEAR = parseInt(process.env.YEAR || String(new Date().getFullYear()), 10);
 const OUTPUT_FILE = path.join(EMBEDDED_DIR, `top2000_top${YEAR}.ts`);
 const PENDING_FILE = path.join(PENDING_DIR, `top${YEAR}.pending.json`);
-const YOUTUBE_SEARCH_LIMIT = parseInt(process.env.YOUTUBE_SEARCH_LIMIT || "90", 10);
+const DRY_RUN = process.env.DRY_RUN === "true";
+// A dry run tries only a few lookups, to check the API keys.
+const YOUTUBE_SEARCH_LIMIT = DRY_RUN ? 2 : parseInt(process.env.YOUTUBE_SEARCH_LIMIT || "90", 10);
+const SPOTIFY_SEARCH_LIMIT = DRY_RUN ? 5 : Infinity;
 
 const NPO_PAGES = [
   "https://www.nporadio2.nl/top2000",
@@ -327,6 +331,7 @@ async function findOnNpo(): Promise<{ source: string; entries: ListEntry[] } | n
       for (const m of html.matchAll(/href="([^"]*top-?2000-lijst-van-(\d{4})[^"]*)"/gi)) {
         if (parseInt(m[2], 10) === YEAR) articleUrls.add(absoluteUrl(m[1], page));
       }
+      console.log(`${page}: ${html.length} characters, ${articleUrls.size} article link(s) for ${YEAR} so far`);
     } catch (error) {
       console.log(`Could not read ${page}: ${(error as Error).message}`);
     }
@@ -336,6 +341,7 @@ async function findOnNpo(): Promise<{ source: string; entries: ListEntry[] } | n
     try {
       const html = await fetchText(article);
       const downloads = [...html.matchAll(/href="([^"]+\.(?:xlsx|csv)(?:\?[^"]*)?)"/gi)].map((m) => absoluteUrl(m[1], article));
+      console.log(`${article}: downloads found: ${downloads.join(", ") || "none"}`);
       for (const download of downloads) {
         const entries = await entriesFromSource(download);
         if (entries.length >= 1900) return { source: download, entries };
@@ -349,6 +355,7 @@ async function findOnNpo(): Promise<{ source: string; entries: ListEntry[] } | n
 
   try {
     const entries = entriesFromHtml(await fetchText(NPO_CHART_PAGE));
+    console.log(`${NPO_CHART_PAGE}: ${entries.length} chart entries found`);
     if (entries.length >= 1900) return { source: NPO_CHART_PAGE, entries };
   } catch (error) {
     console.log(`Could not read ${NPO_CHART_PAGE}: ${(error as Error).message}`);
@@ -446,7 +453,7 @@ async function searchYouTube(key: string, song: ListEntry): Promise<string | nul
 /* -------------------- Main -------------------- */
 
 async function loadOrCreatePending(): Promise<PendingSong[] | null> {
-  if (fs.existsSync(PENDING_FILE)) {
+  if (!DRY_RUN && fs.existsSync(PENDING_FILE)) {
     report(`Continuing with ${path.relative(ROOT, PENDING_FILE)}.`);
     return JSON.parse(fs.readFileSync(PENDING_FILE, "utf8"));
   }
@@ -482,7 +489,8 @@ async function loadOrCreatePending(): Promise<PendingSong[] | null> {
 }
 
 async function main() {
-  if (fs.existsSync(OUTPUT_FILE)) {
+  if (DRY_RUN) report("Dry run: nothing will be written.");
+  if (!DRY_RUN && fs.existsSync(OUTPUT_FILE)) {
     report(`${path.relative(ROOT, OUTPUT_FILE)} already exists; nothing to do.`);
     return;
   }
@@ -500,7 +508,7 @@ async function main() {
   const token = await spotifyToken();
   if (token) {
     let found = 0;
-    for (const song of songs.filter((s) => !s.spotifySearched)) {
+    for (const song of songs.filter((s) => !s.spotifySearched).slice(0, SPOTIFY_SEARCH_LIMIT)) {
       const result = await searchSpotify(token, song);
       song.spotifySearched = true;
       if (result) {
@@ -535,6 +543,15 @@ async function main() {
   } else if (songs.some((s) => !s.youtubeSearched)) {
     report("⚠️ No YOUTUBE_API_KEY; the list is published without YouTube videos for new songs.");
     songs.forEach((s) => (s.youtubeSearched = true));
+  }
+
+  if (DRY_RUN) {
+    const sample = songs.slice(0, 5).concat(songs.filter((s) => !s.youtubeId || !s.spotifyUri).slice(0, 10));
+    report(
+      "Sample (first songs, then songs still missing a link):\n\n" +
+        sample.map((s) => `- #${s.placement} ${s.artist} – ${s.title} (${s.year ?? "?"}): youtube=${s.youtubeId ?? "-"} spotify=${s.spotifyUri ?? "-"}`).join("\n"),
+    );
+    return;
   }
 
   const remaining = songs.filter((s) => !s.youtubeSearched).length;

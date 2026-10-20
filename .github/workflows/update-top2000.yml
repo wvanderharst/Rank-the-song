@@ -14,6 +14,10 @@ on:
       source_url:
         description: "Optional: URL of the list's Excel/CSV download, if it is not found automatically"
         required: false
+      dry_run:
+        description: "Test run: only find the list and try a few lookups, change nothing"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -46,6 +50,7 @@ jobs:
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
           SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           # Fail (and send GitHub's failure e-mail) when the list is still missing
           # from 20 December on, or when someone started the run by hand.
