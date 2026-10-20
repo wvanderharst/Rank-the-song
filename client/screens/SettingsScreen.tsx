@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform } from "react-native";
+import React, { useState, useCallback } from "react";
+import { View, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -9,9 +9,10 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import { useSettings, PlayMode } from "@/context/SettingsContext";
+import { useSettings, PlayMode, GameMode, OrderingMode, ChainDifficulty } from "@/context/SettingsContext";
 import { useSpotifyAuth } from "@/context/SpotifyAuthContext";
 import { getSongListName } from "@/constants/songLists";
+import { useRemoveAdsPurchase } from "@/hooks/useAds";
 
 type SettingsNavigationProp = NativeStackNavigationProp<RootStackParamList, "Settings">;
 
@@ -272,6 +273,285 @@ function PlayModeToggle() {
   );
 }
 
+function GameModeSection() {
+  const { theme } = useTheme();
+  const { gameMode, setGameMode, orderingMode, setOrderingMode, chainDifficulty, setChainDifficulty, teamCount, setTeamCount } = useSettings();
+
+  const gameModes: { value: GameMode; label: string; description: string }[] = [
+    { value: "simple", label: "Simple", description: "Play random songs and reveal" },
+    { value: "singleplayer", label: "Single Player", description: "Build a chain of 8 songs in order" },
+    { value: "team", label: "Team Mode", description: "Teams compete to build chains" },
+  ];
+
+  const orderingModes: { value: OrderingMode; label: string }[] = [
+    { value: "ranking", label: "Ranking" },
+    { value: "year", label: "Year" },
+  ];
+
+  const difficultyModes: { value: ChainDifficulty; label: string; description: string }[] = [
+    { value: "easy", label: "Easy", description: "Second chances included" },
+    { value: "hard", label: "Hard", description: "One guess per song" },
+  ];
+
+  const teamOptions = [2, 3, 4, 5, 6];
+
+  return (
+    <View style={[styles.section, { backgroundColor: theme.backgroundDefault }]}>
+      <View style={styles.sectionHeader}>
+        <ThemedText style={styles.sectionTitle}>Game Mode</ThemedText>
+      </View>
+      
+      <View style={styles.gameModeContainer}>
+        {gameModes.map((mode) => {
+          const isSelected = gameMode === mode.value;
+          return (
+            <Pressable
+              key={mode.value}
+              style={[
+                styles.gameModeOption,
+                {
+                  backgroundColor: isSelected ? theme.primary : "transparent",
+                  borderColor: theme.primary,
+                },
+              ]}
+              onPress={() => setGameMode(mode.value)}
+            >
+              <ThemedText
+                style={[
+                  styles.gameModeLabel,
+                  { color: isSelected ? "#FFFFFF" : theme.primary },
+                ]}
+              >
+                {mode.label}
+              </ThemedText>
+              <ThemedText
+                style={[
+                  styles.gameModeDescription,
+                  { color: isSelected ? "rgba(255,255,255,0.8)" : theme.textSecondary },
+                ]}
+                numberOfLines={1}
+              >
+                {mode.description}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {(gameMode === "singleplayer" || gameMode === "team") ? (
+        <>
+          <View style={styles.subsectionHeader}>
+            <ThemedText style={[styles.subsectionTitle, { color: theme.textSecondary }]}>
+              Order By
+            </ThemedText>
+          </View>
+          <View style={styles.toggleContainer}>
+            {orderingModes.map((mode) => {
+              const isSelected = orderingMode === mode.value;
+              return (
+                <Pressable
+                  key={mode.value}
+                  style={[
+                    styles.toggleOption,
+                    {
+                      backgroundColor: isSelected ? theme.primary : "transparent",
+                      borderColor: theme.primary,
+                    },
+                  ]}
+                  onPress={() => setOrderingMode(mode.value)}
+                >
+                  <ThemedText
+                    style={[
+                      styles.toggleLabel,
+                      { color: isSelected ? "#FFFFFF" : theme.primary },
+                    ]}
+                  >
+                    {mode.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
+      ) : null}
+
+      {(gameMode === "singleplayer" || gameMode === "team") ? (
+        <>
+          <View style={styles.subsectionHeader}>
+            <ThemedText style={[styles.subsectionTitle, { color: theme.textSecondary }]}>
+              Difficulty
+            </ThemedText>
+          </View>
+          <View style={styles.toggleContainer}>
+            {difficultyModes.map((mode) => {
+              const isSelected = chainDifficulty === mode.value;
+              return (
+                <Pressable
+                  key={mode.value}
+                  style={[
+                    styles.difficultyOption,
+                    {
+                      backgroundColor: isSelected ? theme.primary : "transparent",
+                      borderColor: theme.primary,
+                    },
+                  ]}
+                  onPress={() => setChainDifficulty(mode.value)}
+                >
+                  <ThemedText
+                    style={[
+                      styles.difficultyLabel,
+                      { color: isSelected ? "#FFFFFF" : theme.primary },
+                    ]}
+                  >
+                    {mode.label}
+                  </ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.difficultyDescription,
+                      { color: isSelected ? "rgba(255,255,255,0.8)" : theme.textSecondary },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {mode.description}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
+      ) : null}
+
+      {gameMode === "team" ? (
+        <>
+          <View style={styles.subsectionHeader}>
+            <ThemedText style={[styles.subsectionTitle, { color: theme.textSecondary }]}>
+              Number of Teams
+            </ThemedText>
+          </View>
+          <View style={styles.teamCountContainer}>
+            {teamOptions.map((count) => {
+              const isSelected = teamCount === count;
+              return (
+                <Pressable
+                  key={count}
+                  style={[
+                    styles.teamCountOption,
+                    {
+                      backgroundColor: isSelected ? theme.primary : "transparent",
+                      borderColor: theme.primary,
+                    },
+                  ]}
+                  onPress={() => setTeamCount(count)}
+                >
+                  <ThemedText
+                    style={[
+                      styles.teamCountLabel,
+                      { color: isSelected ? "#FFFFFF" : theme.primary },
+                    ]}
+                  >
+                    {count}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+function RemoveAdsSection() {
+  const { theme } = useTheme();
+  const { adsDisabled } = useSettings();
+  const { purchaseRemoveAds, restorePurchases, isIAPAvailable } = useRemoveAdsPurchase();
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  const handlePurchase = useCallback(async () => {
+    setIsPurchasing(true);
+    try {
+      const success = await purchaseRemoveAds();
+      if (!success) {
+        Alert.alert("Purchase Failed", "Unable to complete the purchase. Please try again.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "An error occurred during purchase.");
+    } finally {
+      setIsPurchasing(false);
+    }
+  }, [purchaseRemoveAds]);
+
+  const handleRestore = useCallback(async () => {
+    setIsRestoring(true);
+    try {
+      const success = await restorePurchases();
+      if (success) {
+        Alert.alert("Restored", "Your purchase has been restored. Ads are now disabled.");
+      } else {
+        Alert.alert("No Purchases Found", "No previous purchases were found to restore.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "An error occurred while restoring purchases.");
+    } finally {
+      setIsRestoring(false);
+    }
+  }, [restorePurchases]);
+
+  if (Platform.OS === "web") {
+    return null;
+  }
+
+  if (!isIAPAvailable) {
+    return null;
+  }
+
+  return (
+    <View style={[styles.section, { backgroundColor: theme.backgroundDefault }]}>
+      <View style={styles.sectionHeader}>
+        <ThemedText style={styles.sectionTitle}>Remove Ads</ThemedText>
+      </View>
+      {adsDisabled ? (
+        <ThemedText style={[styles.sectionText, { color: "#22c55e" }]}>
+          Ads are disabled. Thank you for your support!
+        </ThemedText>
+      ) : (
+        <>
+          <ThemedText style={[styles.sectionText, { color: theme.textSecondary }]}>
+            Remove all ads permanently with a one-time purchase.
+          </ThemedText>
+          <Pressable
+            style={[styles.purchaseButton, { backgroundColor: theme.primary }]}
+            onPress={handlePurchase}
+            disabled={isPurchasing || isRestoring}
+          >
+            {isPurchasing ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <ThemedText style={styles.purchaseButtonText}>
+                Remove Ads
+              </ThemedText>
+            )}
+          </Pressable>
+          <Pressable
+            style={[styles.restoreButton, { borderColor: theme.textSecondary }]}
+            onPress={handleRestore}
+            disabled={isPurchasing || isRestoring}
+          >
+            {isRestoring ? (
+              <ActivityIndicator size="small" color={theme.textSecondary} />
+            ) : (
+              <ThemedText style={[styles.restoreButtonText, { color: theme.textSecondary }]}>
+                Restore Purchase
+              </ThemedText>
+            )}
+          </Pressable>
+        </>
+      )}
+    </View>
+  );
+}
+
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
@@ -288,6 +568,10 @@ export default function SettingsScreen() {
         ]}
         scrollIndicatorInsets={{ bottom: insets.bottom }}
       >
+        <GameModeSection />
+
+        <RemoveAdsSection />
+
         <View
           style={[
             styles.section,
@@ -319,13 +603,16 @@ export default function SettingsScreen() {
             <ThemedText style={styles.sectionTitle}>About</ThemedText>
           </View>
           <ThemedText style={[styles.sectionText, { color: theme.textSecondary }]}>
-            The Top 2000 is an annual Dutch radio event by NPO Radio 2, broadcasting the 2000 greatest songs of all time as voted by the Dutch public.
+            Rank the Song is a game that tests your knowledge of the popularity of hits. Lists selected can be voted lists or popularity lists from a given year.
           </ThemedText>
           <ThemedText style={[styles.sectionText, { color: theme.textSecondary, marginTop: Spacing.md }]}>
             This game randomly selects songs from the list. Listen and try to guess the song before revealing its placement!
           </ThemedText>
           <ThemedText style={[styles.sectionText, { color: theme.textSecondary, marginTop: Spacing.md }]}>
-            The youtube version has some issues, due to song choosing algorithm
+            For Dutch players I suggest starting with the top2000 that is the default, for international players I suggest starting with the 10000 greastest hits list. These lists are also the most fun to play ranking based on year of release. 
+          </ThemedText>
+          <ThemedText style={[styles.sectionText, { color: theme.textSecondary, marginTop: Spacing.md }]}>
+            The Youtube version has some issues, due to song choosing algorithm. The spotify version is more reliable. However the Youtube version ofcourse has the benefit of not needing a spotify account. However deleting ads from the app, will not disable ads in the Youtube player.
           </ThemedText>
         </View>
 
@@ -341,7 +628,7 @@ export default function SettingsScreen() {
           <View style={styles.instructionItem}>
             <ThemedText style={styles.instructionNumber}>1</ThemedText>
             <ThemedText style={[styles.instructionText, { color: theme.textSecondary }]}>
-              A random song from the Top 2000 will be loaded
+              A random song from the selected list will be loaded
             </ThemedText>
           </View>
           <View style={styles.instructionItem}>
@@ -417,6 +704,66 @@ const styles = StyleSheet.create({
   },
   toggleLabel: {
     fontSize: 15,
+    fontWeight: "600",
+  },
+  gameModeContainer: {
+    gap: Spacing.sm,
+  },
+  gameModeOption: {
+    flexDirection: "column",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+  },
+  gameModeLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  gameModeDescription: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  difficultyOption: {
+    flex: 1,
+    flexDirection: "column",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    alignItems: "center",
+  },
+  difficultyLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  difficultyDescription: {
+    fontSize: 10,
+    marginTop: 2,
+    textAlign: "center",
+  },
+  subsectionHeader: {
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  subsectionTitle: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  teamCountContainer: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  teamCountOption: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  teamCountLabel: {
+    fontSize: 16,
     fontWeight: "600",
   },
   instructionItem: {
@@ -554,5 +901,32 @@ const styles = StyleSheet.create({
   },
   historyDate: {
     fontSize: 11,
+  },
+  purchaseButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.lg,
+  },
+  purchaseButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  restoreButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    marginTop: Spacing.md,
+  },
+  restoreButtonText: {
+    fontSize: 14,
   },
 });

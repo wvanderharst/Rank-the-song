@@ -4,6 +4,15 @@
 
 Top 2000 Game is a React Native/Expo mobile application that gamifies the Dutch Radio 2 Top 2000 music list. Users listen to random songs from the Top 2000 and try to guess the song before revealing its details (placement, artist, title, year). The app features YouTube playback integration with optional Spotify support.
 
+### Game Modes
+- **Simple Mode**: Play random songs and reveal placement, artist, title, and year
+- **Single Player Mode**: Build a chain of 8 songs in correct order (by ranking or year). Songs must be placed in the correct position relative to existing songs in the chain.
+- **Team Mode**: Same as Single Player but with 2-6 teams taking turns. First team to build a chain of 8 songs wins.
+
+### Ordering Options
+- **Ranking**: Order songs by their Top 2000 placement (lower = better)
+- **Year**: Order songs by release year (older to newer)
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -34,13 +43,13 @@ Preferred communication style: Simple, everyday language.
 
 ```
 client/           # React Native frontend
-  screens/        # Screen components (GameScreen, SettingsScreen)
+  screens/        # Screen components (GameScreen, ChainGameScreen, SettingsScreen)
   components/     # Reusable UI components
   hooks/          # Custom React hooks
-  context/        # React Context providers
-  navigation/     # Navigation configuration
+  context/        # React Context providers (SettingsContext for game/play/ordering modes)
+  navigation/     # Navigation configuration with GameRouter for mode switching
   constants/      # Theme and styling constants
-  lib/            # API client and utilities
+  lib/            # API client and utilities (song-manager.ts for embedded song data)
 
 server/           # Express backend
   index.ts        # Server entry point

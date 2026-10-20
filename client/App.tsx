@@ -14,6 +14,7 @@ import RootStackNavigator from "@/navigation/RootStackNavigator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { SpotifyAuthProvider } from "@/context/SpotifyAuthContext";
+import { AdsInitializer } from "@/components/AdsInitializer";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -25,6 +26,7 @@ function AppContent() {
   return (
     <QueryClientProvider client={queryClient}>
       <SettingsProvider>
+        <AdsInitializer />
         <SpotifyAuthProvider>
           <SafeAreaProvider>
             <GestureHandlerRootView style={styles.root}>

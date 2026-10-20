@@ -1,22 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
-import * as WebBrowser from "expo-web-browser";
 import * as SecureStore from "expo-secure-store";
 import * as Linking from "expo-linking";
 import { Platform } from "react-native";
 import * as Crypto from "expo-crypto";
-import { getApiUrl } from "@/lib/query-client";
-
-WebBrowser.maybeCompleteAuthSession();
 
 const OAUTH_BASE_URL = "https://spotify-oauth.wouter-van-der-harst.workers.dev";
-
-function getOAuthRedirectUrl(): string {
-  const apiUrl = getApiUrl();
-  const url = new URL(apiUrl);
-  url.port = "";
-  return `${url.href}oauth-callback`;
-}
-const APP_SCHEME = "top2000game";
 
 interface SpotifyTokens {
   accessToken: string;
@@ -223,11 +211,9 @@ export function SpotifyAuthProvider({ children }: { children: ReactNode }) {
       console.log(`[Spotify Auth] Generated handshake ID for web: ${handshakeId}`);
       pendingHandshakeRef.current = handshakeId;
       
-      const redirectUri = getOAuthRedirectUrl();
-      const loginUrl = `${OAUTH_BASE_URL}/login?handshakeId=${handshakeId}&redirectUri=${encodeURIComponent(redirectUri)}`;
+      const loginUrl = `${OAUTH_BASE_URL}/login?handshakeId=${handshakeId}`;
       
       console.log(`[Spotify Auth] Opening popup: ${loginUrl}`);
-      console.log(`[Spotify Auth] Redirect URI: ${redirectUri}`);
       
       const popup = window.open(loginUrl, "_blank", "width=500,height=700");
       
@@ -253,13 +239,11 @@ export function SpotifyAuthProvider({ children }: { children: ReactNode }) {
       console.log(`[Spotify Auth] Generated handshake ID: ${handshakeId}`);
       pendingHandshakeRef.current = handshakeId;
       
-      const redirectUri = getOAuthRedirectUrl();
-      const loginUrl = `${OAUTH_BASE_URL}/login?handshakeId=${handshakeId}&redirectUri=${encodeURIComponent(redirectUri)}`;
+      const loginUrl = `${OAUTH_BASE_URL}/login?handshakeId=${handshakeId}`;
       
       console.log(`[Spotify Auth] Opening browser: ${loginUrl}`);
-      console.log(`[Spotify Auth] Redirect URI: ${redirectUri}`);
       
-      await WebBrowser.openBrowserAsync(loginUrl);
+      await Linking.openURL(loginUrl);
       
       console.log(`[Spotify Auth] Browser opened, starting token polling...`);
       
@@ -275,7 +259,6 @@ export function SpotifyAuthProvider({ children }: { children: ReactNode }) {
             const success = await fetchTokensByHandshake(handshakeId);
             if (success) {
               console.log(`[Spotify Auth] Tokens retrieved successfully!`);
-              await WebBrowser.dismissBrowser();
               return true;
             }
           } catch (error) {

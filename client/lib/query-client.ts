@@ -1,19 +1,92 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { Platform } from "react-native";
+import Constants from "expo-constants";
 
 /**
- * Gets the base URL for the Express API server (e.g., "http://localhost:3000")
+ * Extracts the origin (protocol + host + port) from a URL string.
+ * Handles Expo URL schemes (exp:// -> http://, exps:// -> https://)
+ * For scheme-less values, defaults to https:// for production deployments
+ * but the URL parsing will preserve whatever protocol is actually used.
+ */
+function extractOrigin(urlString: string): string {
+  // Handle Expo URL schemes
+  let normalized = urlString;
+  if (urlString.startsWith("exp://")) {
+    normalized = urlString.replace("exp://", "http://");
+  } else if (urlString.startsWith("exps://")) {
+    normalized = urlString.replace("exps://", "https://");
+  } else if (urlString.startsWith("http://") || urlString.startsWith("https://")) {
+    // Already has a valid protocol, use as-is
+    normalized = urlString;
+  } else if (!urlString.includes("://")) {
+    // No protocol - for Replit and most production deployments, use https
+    // The static bundles are served over HTTPS via Replit's proxy
+    normalized = `https://${urlString}`;
+  }
+
+  try {
+    const url = new URL(normalized);
+    return url.origin;
+  } catch {
+    // Fallback: just prepend https if parsing fails
+    return `https://${urlString.split("/")[0]}`;
+  }
+}
+
+/**
+ * Gets the base URL for the Express API server using same-origin detection.
+ * No environment variables required - works on any hosting provider.
+ * 
+ * Strategy:
+ * - Web: window.location.origin (same-origin requests)
+ *   Note: For production, Express serves both static bundles and API from port 5000.
+ *   For web development via Metro (8081), use the app via port 5000 for full functionality.
+ * - Native: Extract origin from Expo manifest/Constants (preserving protocol and port)
+ * 
  * @returns {string} The API base URL
  */
 export function getApiUrl(): string {
-  let host = process.env.EXPO_PUBLIC_DOMAIN;
-
-  if (!host) {
-    throw new Error("EXPO_PUBLIC_DOMAIN is not set");
+  // Web platform: use same-origin
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    return window.location.origin;
   }
 
-  let url = new URL(`https://${host}`);
+  // Native platform: extract full origin from Expo Constants
+  // The app was loaded from a manifest URL - use the same origin for API calls
+  
+  // Try expoConfig.hostUri first (can be "domain.com:5000" or full URL)
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    return extractOrigin(hostUri);
+  }
 
-  return url.href;
+  // Try manifest2 (newer Expo SDK)
+  const manifest2 = Constants.manifest2;
+  if (manifest2?.extra?.expoGo?.debuggerHost) {
+    return extractOrigin(manifest2.extra.expoGo.debuggerHost);
+  }
+
+  // Try legacy manifest
+  const manifest = Constants.manifest;
+  if (manifest) {
+    // @ts-ignore - manifest structure varies between SDK versions
+    const host = manifest.hostUri || manifest.debuggerHost;
+    if (host) {
+      return extractOrigin(host);
+    }
+  }
+
+  // For standalone builds, try to extract from the bundle URL
+  // @ts-ignore
+  const bundleUrl = Constants.expoConfig?.extra?.expoClient?.hostUri;
+  if (bundleUrl) {
+    return extractOrigin(bundleUrl);
+  }
+
+  // Fallback error with helpful message
+  throw new Error(
+    "Could not determine API URL from app origin. Ensure the app is loaded from the correct server."
+  );
 }
 
 async function throwIfResNotOk(res: Response) {

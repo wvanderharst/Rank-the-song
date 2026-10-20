@@ -28,7 +28,8 @@ import { Spacing, BorderRadius, Colors } from "@/constants/theme";
 import { useSettings } from "@/context/SettingsContext";
 import { useSpotifyAuth } from "@/context/SpotifyAuthContext";
 import { Song } from "@shared/songs-data";
-import { getApiUrl } from "@/lib/query-client";
+import { getRandomSong as getRandomSongFromList, getSongCount } from "@/lib/song-manager";
+import { useAdManager } from "@/hooks/useAds";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLAYER_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
@@ -148,12 +149,14 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
 
   const fetchDevices = async () => {
     console.log("[SpotifyPlayer] fetchDevices called");
+    setError(null);
+    setDevicesFetched(false);
     try {
-      setError(null);
       const token = await getValidAccessToken();
       console.log("[SpotifyPlayer] Got token:", token ? "yes" : "no");
       if (!token) {
         setError("Please connect Spotify in Settings");
+        setDevicesFetched(true);
         return;
       }
       
@@ -173,6 +176,7 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
         } else {
           setError("Could not connect to Spotify");
         }
+        setDevicesFetched(true);
         return;
       }
       
@@ -355,17 +359,22 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
   return (
     <View style={[styles.spotifyContainer, { backgroundColor: "#1DB954" }]}>
       <View style={styles.spotifyControls}>
-        <Pressable 
-          style={styles.deviceSelector}
-          onPress={() => setShowDevices(!showDevices)}
-        >
-          <ThemedText style={styles.deviceText} numberOfLines={1}>
-            {selectedDeviceName}
-          </ThemedText>
-          <ThemedText style={{ color: "#FFFFFF", fontSize: 14 }}>
-            {showDevices ? "v" : ">"}
-          </ThemedText>
-        </Pressable>
+        <View style={styles.deviceRow}>
+          <Pressable 
+            style={[styles.deviceSelector, { flex: 1 }]}
+            onPress={() => setShowDevices(!showDevices)}
+          >
+            <ThemedText style={styles.deviceText} numberOfLines={1}>
+              {selectedDeviceName}
+            </ThemedText>
+            <ThemedText style={{ color: "#FFFFFF", fontSize: 14 }}>
+              {showDevices ? "v" : ">"}
+            </ThemedText>
+          </Pressable>
+          <Pressable style={styles.retryButton} onPress={fetchDevices}>
+            <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+          </Pressable>
+        </View>
         
         {showDevices ? (
           <View style={styles.deviceList}>
@@ -421,6 +430,7 @@ export default function GameScreen() {
   const headerHeight = useHeaderHeight();
   const { theme, isDark } = useTheme();
   const { playMode, addToHistory, songHistory } = useSettings();
+  const { onSongLoaded, tryShowAd } = useAdManager();
   const playerRef = useRef<YoutubeIframeRef>(null);
 
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
@@ -429,67 +439,39 @@ export default function GameScreen() {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [isLoadingSong, setIsLoadingSong] = useState(false);
 
-  const fetchRandomSong = useCallback(async (excludeCurrentId?: number): Promise<Song | null> => {
-    try {
-      const countUrl = new URL("/api/songs/count", getApiUrl());
-      const countResponse = await fetch(countUrl.toString());
-      const { count: totalSongs } = await countResponse.json();
-      
-      const historyIds = new Set(songHistory.map(s => s.id));
-      if (excludeCurrentId !== undefined) {
-        historyIds.add(excludeCurrentId);
-      }
-      const shouldAvoidDuplicates = historyIds.size < totalSongs * 0.7;
-      
-      const maxRetries = shouldAvoidDuplicates ? 10 : 1;
-      
-      for (let i = 0; i < maxRetries; i++) {
-        const url = new URL("/api/songs/random", getApiUrl());
-        const response = await fetch(url.toString());
-        if (!response.ok) return null;
-        
-        const song = await response.json();
-        
-        if (!shouldAvoidDuplicates || !historyIds.has(song.id)) {
-          return song;
-        }
-      }
-      
-      const url = new URL("/api/songs/random", getApiUrl());
-      const response = await fetch(url.toString());
-      if (!response.ok) return null;
-      return await response.json();
-    } catch (error) {
-      console.error("Failed to fetch random song:", error);
-      return null;
+  const pickRandomSong = useCallback((excludeCurrentId?: number): Song | null => {
+    const historyIds = new Set(songHistory.map(s => s.id));
+    if (excludeCurrentId !== undefined) {
+      historyIds.add(excludeCurrentId);
     }
+    
+    const totalSongs = getSongCount();
+    const shouldAvoidDuplicates = historyIds.size < totalSongs * 0.7;
+    
+    return getRandomSongFromList(shouldAvoidDuplicates ? historyIds : undefined);
   }, [songHistory]);
 
   const onPlayerReady = useCallback(() => {
     setIsPlayerReady(true);
   }, []);
 
-  const onPlayerStateChange = useCallback(async (state: string) => {
+  const onPlayerStateChange = useCallback((state: string) => {
     if (state === 'ended') {
-      setIsLoadingSong(true);
-      const newSong = await fetchRandomSong(currentSong?.id);
+      const newSong = pickRandomSong(currentSong?.id);
       if (newSong) {
         setCurrentSong(newSong);
         setIsRevealed(false);
       }
-      setIsLoadingSong(false);
     }
-  }, [fetchRandomSong, currentSong?.id]);
+  }, [pickRandomSong, currentSong?.id]);
 
-  const handleNextSong = useCallback(async () => {
-    setIsLoadingSong(true);
-    const newSong = await fetchRandomSong(currentSong?.id);
+  const handleNextSong = useCallback(() => {
+    const newSong = pickRandomSong(currentSong?.id);
     if (newSong) {
       setCurrentSong(newSong);
       setIsRevealed(false);
     }
-    setIsLoadingSong(false);
-  }, [fetchRandomSong, currentSong?.id]);
+  }, [pickRandomSong, currentSong?.id]);
 
 
   const handleReveal = () => {
@@ -497,27 +479,13 @@ export default function GameScreen() {
   };
 
   useEffect(() => {
-    let isMounted = true;
-    
-    const loadInitialSong = async () => {
-      if (!currentSong) {
-        setIsLoadingSong(true);
-        const initialSong = await fetchRandomSong();
-        if (isMounted && initialSong) {
-          setCurrentSong(initialSong);
-        }
-        if (isMounted) {
-          setIsLoadingSong(false);
-        }
+    if (!currentSong) {
+      const initialSong = pickRandomSong();
+      if (initialSong) {
+        setCurrentSong(initialSong);
       }
-    };
-    
-    loadInitialSong();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [fetchRandomSong]);
+    }
+  }, []);
 
   useEffect(() => {
     if (currentSong?.youtubeId && isPlayerReady && playerRef.current) {
@@ -536,8 +504,10 @@ export default function GameScreen() {
         title: currentSong.title,
         year: currentSong.year,
       });
+      onSongLoaded();
+      tryShowAd();
     }
-  }, [currentSong, addToHistory]);
+  }, [currentSong, addToHistory, onSongLoaded, tryShowAd]);
 
   return (
     <ThemedView
@@ -605,7 +575,6 @@ export default function GameScreen() {
                 />
               ) : currentSong ? (
                 <YoutubePlayer
-                  key={`yt-${currentSong.youtubeId}`}
                   ref={playerRef}
                   play={true}
                   mute={true}
@@ -881,6 +850,12 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
   },
+  deviceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    width: "90%",
+  },
   deviceSelector: {
     flexDirection: "row",
     alignItems: "center",
@@ -889,7 +864,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.sm,
-    maxWidth: "80%",
+  },
+  retryButton: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.sm,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "500",
   },
   deviceText: {
     color: "#FFFFFF",

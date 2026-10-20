@@ -3,11 +3,9 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
   Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigation } from "@react-navigation/native";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -15,29 +13,21 @@ import { ThemedView } from "@/components/ThemedView";
 import { useTheme } from "@/hooks/useTheme";
 import { useSettings } from "@/context/SettingsContext";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import { apiRequest } from "@/lib/query-client";
 import { SONG_LISTS } from "@/constants/songLists";
+import { setCurrentList } from "@/lib/song-manager";
 
 export default function SongListScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const navigation = useNavigation();
-  const queryClient = useQueryClient();
   const { selectedSongList, setSelectedSongList } = useSettings();
 
-  const importMutation = useMutation({
-    mutationFn: async (listId: string) => {
-      return apiRequest("POST", "/api/songlists/import", { listId });
-    },
-    onSuccess: (_, listId) => {
-      setSelectedSongList(listId);
-      queryClient.invalidateQueries({ queryKey: ["/api/songs"] });
-      navigation.goBack();
-    },
-  });
-
   const handleSelectList = (listId: string) => {
-    importMutation.mutate(listId);
+    const success = setCurrentList(listId);
+    if (success) {
+      setSelectedSongList(listId);
+      navigation.goBack();
+    }
   };
 
   return (
@@ -56,7 +46,6 @@ export default function SongListScreen() {
         <View style={styles.listContainer}>
           {SONG_LISTS.map((list) => {
             const isSelected = selectedSongList === list.id;
-            const isImporting = importMutation.isPending && importMutation.variables === list.id;
 
             return (
               <Pressable
@@ -69,7 +58,6 @@ export default function SongListScreen() {
                   },
                 ]}
                 onPress={() => handleSelectList(list.id)}
-                disabled={importMutation.isPending}
               >
                 <View style={styles.radioContainer}>
                   <View
@@ -99,10 +87,6 @@ export default function SongListScreen() {
                     {list.songCount} songs
                   </ThemedText>
                 </View>
-
-                {isImporting ? (
-                  <ActivityIndicator size="small" color={theme.primary} />
-                ) : null}
               </Pressable>
             );
           })}

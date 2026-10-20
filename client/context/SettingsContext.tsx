@@ -2,6 +2,12 @@ import React, { createContext, useContext, useState, ReactNode, useCallback } fr
 
 export type PlayMode = "youtube" | "spotify";
 
+export type GameMode = "simple" | "singleplayer" | "team";
+
+export type OrderingMode = "ranking" | "year";
+
+export type ChainDifficulty = "easy" | "hard";
+
 export type SelectedSongList = string | null;
 
 export type PlayedSong = {
@@ -16,19 +22,40 @@ export type PlayedSong = {
 interface SettingsContextType {
   playMode: PlayMode;
   setPlayMode: (mode: PlayMode) => void;
+  gameMode: GameMode;
+  setGameMode: (mode: GameMode) => void;
+  orderingMode: OrderingMode;
+  setOrderingMode: (mode: OrderingMode) => void;
+  chainDifficulty: ChainDifficulty;
+  setChainDifficulty: (difficulty: ChainDifficulty) => void;
+  teamCount: number;
+  setTeamCount: (count: number) => void;
   selectedSongList: SelectedSongList;
   setSelectedSongList: (list: SelectedSongList) => void;
   songHistory: PlayedSong[];
   addToHistory: (song: { id: number; placement: number; artist: string; title: string; year: number }) => void;
   clearHistory: () => void;
+  adsDisabled: boolean;
+  setAdsDisabled: (disabled: boolean) => void;
+  songsSinceLastAd: number;
+  incrementSongCount: () => void;
+  resetAdCounters: () => void;
+  lastAdTimestamp: number;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [playMode, setPlayMode] = useState<PlayMode>("spotify");
+  const [gameMode, setGameMode] = useState<GameMode>("simple");
+  const [orderingMode, setOrderingMode] = useState<OrderingMode>("ranking");
+  const [chainDifficulty, setChainDifficulty] = useState<ChainDifficulty>("hard");
+  const [teamCount, setTeamCount] = useState<number>(2);
   const [selectedSongList, setSelectedSongList] = useState<SelectedSongList>("top2000_top2025");
   const [songHistory, setSongHistory] = useState<PlayedSong[]>([]);
+  const [adsDisabled, setAdsDisabled] = useState<boolean>(false);
+  const [songsSinceLastAd, setSongsSinceLastAd] = useState<number>(0);
+  const [lastAdTimestamp, setLastAdTimestamp] = useState<number>(Date.now());
 
   const addToHistory = useCallback((song: { id: number; placement: number; artist: string; title: string; year: number }) => {
     setSongHistory(prev => {
@@ -47,15 +74,38 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSongHistory([]);
   }, []);
 
+  const incrementSongCount = useCallback(() => {
+    setSongsSinceLastAd(prev => prev + 1);
+  }, []);
+
+  const resetAdCounters = useCallback(() => {
+    setSongsSinceLastAd(0);
+    setLastAdTimestamp(Date.now());
+  }, []);
+
   return (
     <SettingsContext.Provider value={{ 
       playMode, 
-      setPlayMode, 
+      setPlayMode,
+      gameMode,
+      setGameMode,
+      orderingMode,
+      setOrderingMode,
+      chainDifficulty,
+      setChainDifficulty,
+      teamCount,
+      setTeamCount,
       selectedSongList, 
       setSelectedSongList,
       songHistory,
       addToHistory,
       clearHistory,
+      adsDisabled,
+      setAdsDisabled,
+      songsSinceLastAd,
+      incrementSongCount,
+      resetAdCounters,
+      lastAdTimestamp,
     }}>
       {children}
     </SettingsContext.Provider>

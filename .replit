@@ -55,3 +55,5 @@ ensurePreviewReachable = "/status"
 [userenv.shared]
 EXPO_PUBLIC_SPOTIFY_CLIENT_ID = "84b7a02d57c74b5facda3aa357abe491"
 
+[userenv.development]
+
