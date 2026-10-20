@@ -136,6 +136,17 @@ export function YouTubePlayControls({ videoId, song }: Omit<PlayerProps, "onEnde
     setIsPlaying(false);
   }, [videoId, setIsPlaying]);
 
+  // Some songs (e.g. new Top 2000 entries) have no YouTube video.
+  if (videoId === "") {
+    return (
+      <View style={[styles.audioControls, { backgroundColor: theme.backgroundDefault }]}>
+        <ThemedText style={[styles.audioHint, { color: theme.textSecondary }]}>
+          Geen YouTube-video voor dit nummer. Kies een volgend nummer of speel via Spotify.
+        </ThemedText>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.audioControls, { backgroundColor: theme.backgroundDefault }]}>
       <Pressable
@@ -163,6 +174,7 @@ export function YouTubePlayControls({ videoId, song }: Omit<PlayerProps, "onEnde
  */
 export function YouTubeBottomPlayer({ videoId, song, onEnded }: PlayerProps) {
   const { theme } = useTheme();
+  if (videoId === "") return null;
 
   return (
     <View style={styles.bottomSection}>

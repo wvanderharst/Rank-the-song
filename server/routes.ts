@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "node:http";
 import { getRandomSong, getSongById, getAllSongs, setSongs, getSongCount } from "../shared/songs-data";
-import { songListManifest, getEmbeddedSongs, getDefaultSongs } from "../shared/embedded-songs";
+import { songListManifest, getEmbeddedSongs, getDefaultSongs, DEFAULT_SONG_LIST_ID } from "../shared/embedded-songs";
 import { 
   getAvailableDevices, 
   playTrack, 
@@ -11,7 +11,7 @@ import {
   getPlaybackState 
 } from "./spotify";
 
-const DEFAULT_SONG_LIST = "top2000_top2025";
+const DEFAULT_SONG_LIST = DEFAULT_SONG_LIST_ID;
 
 function loadDefaultSongList(): void {
   const songs = getDefaultSongs();

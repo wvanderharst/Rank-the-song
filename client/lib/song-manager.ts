@@ -1,8 +1,8 @@
 import { Song } from "@shared/songs-data";
-import { songListManifest, getEmbeddedSongs, getDefaultSongs } from "@shared/embedded-songs";
+import { songListManifest, getEmbeddedSongs, getDefaultSongs, DEFAULT_SONG_LIST_ID } from "@shared/embedded-songs";
 
 let currentSongs: Song[] = getDefaultSongs();
-let currentListId: string = "top2000_top2025";
+let currentListId: string = DEFAULT_SONG_LIST_ID;
 
 export function getSongLists() {
   return songListManifest;

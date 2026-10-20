@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from "react";
 import { Platform } from "react-native";
+import { DEFAULT_SONG_LIST_ID } from "@shared/embedded-songs";
 
 // "spotify": playback control after Spotify login (phone app only; Spotify only
 // allows accounts added in its developer dashboard).
@@ -55,7 +56,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [orderingMode, setOrderingMode] = useState<OrderingMode>("ranking");
   const [chainDifficulty, setChainDifficulty] = useState<ChainDifficulty>("hard");
   const [teamCount, setTeamCount] = useState<number>(2);
-  const [selectedSongList, setSelectedSongList] = useState<SelectedSongList>("top2000_top2025");
+  const [selectedSongList, setSelectedSongList] = useState<SelectedSongList>(DEFAULT_SONG_LIST_ID);
   const [songHistory, setSongHistory] = useState<PlayedSong[]>([]);
   const [adsDisabled, setAdsDisabled] = useState<boolean>(false);
   const [songsSinceLastAd, setSongsSinceLastAd] = useState<number>(0);

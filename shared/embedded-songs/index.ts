@@ -147,7 +147,7 @@ export const songListManifest: SongListInfo[] = [
   { id: "hits_Nederland_top_50_2025", name: "Hits Nederland Top 50 2025", songCount: hits_Nederland_top_50_2025_songs.length },
   { id: "hits_Wereld_top_50_2025", name: "Hits Wereld Top 50 2025", songCount: hits_Wereld_top_50_2025_songs.length },
   { id: "radio_10_top_4000_2025_op_volgorde", name: "Radio 10 Top 4000 2025 Op Volgorde", songCount: radio_10_top_4000_2025_op_volgorde_songs.length },
-  { id: "top2000_top2025", name: "Top2000 Top2025", songCount: top2000_top2025_songs.length },
+  { id: "top2000_top2025", name: "Top 2000 (2025)", songCount: top2000_top2025_songs.length },
   { id: "top_100_aller_tijden", name: "Top 100 Aller Tijden", songCount: top_100_aller_tijden_songs.length },
   { id: "top_100_most_streamed_songs_on_spotify_updated", name: "Top 100 Most Streamed Songs On Spotify Updated", songCount: top_100_most_streamed_songs_on_spotify_updated_songs.length },
   { id: "top_100_over_1985", name: "Top 100 Over 1985", songCount: top_100_over_1985_songs.length },
@@ -296,6 +296,8 @@ export function getEmbeddedSongs(listId: string): Song[] {
   return songListsById[listId] || [];
 }
 
+export const DEFAULT_SONG_LIST_ID = "top2000_top2025";
+
 export function getDefaultSongs(): Song[] {
-  return getEmbeddedSongs("top2000_top2025");
+  return getEmbeddedSongs(DEFAULT_SONG_LIST_ID);
 }

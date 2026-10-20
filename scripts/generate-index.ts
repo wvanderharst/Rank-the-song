@@ -16,6 +16,8 @@ function toVarName(filename: string): string {
 }
 
 function toDisplayName(filename: string): string {
+  const top2000 = filename.match(/^top2000_top(\d{4})\.ts$/);
+  if (top2000) return `Top 2000 (${top2000[1]})`;
   return filename
     .replace(".ts", "")
     .replace(/_/g, " ")
@@ -23,6 +25,13 @@ function toDisplayName(filename: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+// The newest Top 2000 list is the default (scripts/update-top2000.ts adds one every year).
+const defaultListId = files
+  .filter(f => /^top2000_top\d{4}\.ts$/.test(f))
+  .map(toVarName)
+  .sort()
+  .pop();
 
 let imports = `import type { Song } from "../songs-data";\n\n`;
 let manifestEntries: string[] = [];
@@ -58,8 +67,10 @@ export function getEmbeddedSongs(listId: string): Song[] {
   return songListsById[listId] || [];
 }
 
+export const DEFAULT_SONG_LIST_ID = "${defaultListId}";
+
 export function getDefaultSongs(): Song[] {
-  return getEmbeddedSongs("top2000_top2025");
+  return getEmbeddedSongs(DEFAULT_SONG_LIST_ID);
 }
 `;
 
