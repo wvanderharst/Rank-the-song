@@ -58,11 +58,11 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
 
       <View style={styles.content}>
         <ThemedText type="h1" style={styles.title}>
-          Something went wrong
+          Er ging iets mis
         </ThemedText>
 
         <ThemedText type="body" style={styles.message}>
-          Please reload the app to continue.
+          Herlaad de app om verder te gaan.
         </ThemedText>
 
         <Pressable
@@ -80,7 +80,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
             type="body"
             style={[styles.buttonText, { color: theme.buttonText }]}
           >
-            Try Again
+            Opnieuw proberen
           </ThemedText>
         </Pressable>
       </View>
@@ -96,7 +96,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
             <ThemedView style={styles.modalContainer}>
               <View style={styles.modalHeader}>
                 <ThemedText type="h2" style={styles.modalTitle}>
-                  Error Details
+                  Foutdetails
                 </ThemedText>
                 <Pressable
                   onPress={() => setIsModalVisible(false)}
@@ -105,7 +105,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
                     { opacity: pressed ? 0.6 : 1 },
                   ]}
                 >
-                  <ThemedText style={{ fontSize: 18, fontWeight: "600" }}>Close</ThemedText>
+                  <ThemedText style={{ fontSize: 18, fontWeight: "600" }}>Sluiten</ThemedText>
                 </Pressable>
               </View>
 

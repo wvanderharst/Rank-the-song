@@ -40,7 +40,7 @@ export default function SongListScreen() {
         showsVerticalScrollIndicator={false}
       >
         <ThemedText style={[styles.helpText, { color: theme.textSecondary }]}>
-          Select a song list to play from. The selected list will be used for drawing random songs.
+          Kies een nummerlijst. Uit de gekozen lijst worden willekeurige nummers getrokken.
         </ThemedText>
 
         <View style={styles.listContainer}>
@@ -84,7 +84,7 @@ export default function SongListScreen() {
                     {list.name}
                   </ThemedText>
                   <ThemedText style={[styles.songCount, { color: theme.textSecondary }]}>
-                    {list.songCount} songs
+                    {list.songCount} nummers
                   </ThemedText>
                 </View>
               </Pressable>

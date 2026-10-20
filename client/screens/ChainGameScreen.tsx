@@ -175,7 +175,7 @@ function CompactSpotifyPlayer({ spotifyUri }: { spotifyUri: string | null }) {
     try {
       const token = await getValidAccessToken();
       if (!token) {
-        setError("Connect Spotify in Settings");
+        setError("Koppel Spotify in Instellingen");
         setDevicesFetched(true);
         return;
       }
@@ -185,7 +185,7 @@ function CompactSpotifyPlayer({ spotifyUri }: { spotifyUri: string | null }) {
       });
       
       if (!response.ok) {
-        setError("Could not connect to Spotify");
+        setError("Kan geen verbinding maken met Spotify");
         setDevicesFetched(true);
         return;
       }
@@ -200,7 +200,7 @@ function CompactSpotifyPlayer({ spotifyUri }: { spotifyUri: string | null }) {
         setSelectedDevice(data.devices[0].id);
       }
     } catch (err: any) {
-      setError("Could not connect to Spotify");
+      setError("Kan geen verbinding maken met Spotify");
       setDevicesFetched(true);
     }
   };
@@ -229,7 +229,7 @@ function CompactSpotifyPlayer({ spotifyUri }: { spotifyUri: string | null }) {
     try {
       const token = await getValidAccessToken();
       if (!token) {
-        setError("Connect Spotify in Settings");
+        setError("Koppel Spotify in Instellingen");
         setIsLoading(false);
         return;
       }
@@ -249,16 +249,16 @@ function CompactSpotifyPlayer({ spotifyUri }: { spotifyUri: string | null }) {
       
       if (!response.ok) {
         if (response.status === 404) {
-          setError("No active device");
+          setError("Geen actief apparaat");
         } else {
-          setError("Failed to play");
+          setError("Afspelen mislukt");
         }
       } else {
         setIsPlaying(true);
         setHasAutoPlayed(true);
       }
     } catch (err: any) {
-      setError("Failed to play");
+      setError("Afspelen mislukt");
     } finally {
       setIsLoading(false);
     }
@@ -293,7 +293,7 @@ function CompactSpotifyPlayer({ spotifyUri }: { spotifyUri: string | null }) {
     return (
       <View style={[styles.compactPlayer, { backgroundColor: "#1DB954" }]}>
         <ThemedText style={styles.compactPlayerText}>
-          {!isAuthenticated ? "Connect Spotify" : "No Spotify link"}
+          {!isAuthenticated ? "Koppel Spotify" : "Geen Spotify-link"}
         </ThemedText>
       </View>
     );
@@ -311,10 +311,10 @@ function CompactSpotifyPlayer({ spotifyUri }: { spotifyUri: string | null }) {
     return (
       <View style={[styles.compactPlayer, { backgroundColor: "#1DB954" }]}>
         <ThemedText style={styles.compactPlayerText}>
-          {error || "No devices"}
+          {error || "Geen apparaten"}
         </ThemedText>
         <Pressable style={styles.compactButton} onPress={fetchDevices}>
-          <ThemedText style={styles.compactButtonText}>Retry</ThemedText>
+          <ThemedText style={styles.compactButtonText}>Opnieuw</ThemedText>
         </Pressable>
       </View>
     );
@@ -330,13 +330,13 @@ function CompactSpotifyPlayer({ spotifyUri }: { spotifyUri: string | null }) {
         {isLoading ? (
           <ActivityIndicator size="small" color="#1DB954" />
         ) : (
-          <ThemedText style={{ color: "#1DB954", fontSize: 14, fontWeight: "700" }}>
-            {isPlaying ? "Pause" : "Play"}
+          <ThemedText style={{ color: "#1DB954", fontSize: 12, fontWeight: "700" }}>
+            {isPlaying ? "Pauze" : "Afspelen"}
           </ThemedText>
         )}
       </Pressable>
       <Pressable style={styles.compactButton} onPress={fetchDevices}>
-        <ThemedText style={styles.compactButtonText}>Retry</ThemedText>
+        <ThemedText style={styles.compactButtonText}>Opnieuw</ThemedText>
       </Pressable>
     </View>
   );
@@ -362,21 +362,21 @@ function ChainDisplay({
   };
 
   const getTopLabel = () => {
-    return orderingMode === "ranking" ? "Better Ranking" : "Older";
+    return orderingMode === "ranking" ? "Hogere notering" : "Ouder";
   };
 
   const getBottomLabel = () => {
-    return orderingMode === "ranking" ? "Worse Ranking" : "Newer";
+    return orderingMode === "ranking" ? "Lagere notering" : "Nieuwer";
   };
 
   if (chain.length === 0 && !isSelectingPosition) {
     return (
       <View style={[styles.chainContainer, { backgroundColor: theme.backgroundDefault }]}>
         <ThemedText style={[styles.chainEmptyText, { color: theme.textSecondary }]}>
-          Your chain will appear here
+          Je ketting verschijnt hier
         </ThemedText>
         <ThemedText style={[styles.chainEmptySubtext, { color: theme.textSecondary }]}>
-          Keep going until you make a mistake
+          Ga door tot je een fout maakt
         </ThemedText>
       </View>
     );
@@ -390,7 +390,7 @@ function ChainDisplay({
           onPress={() => onInsertPosition(0)}
         >
           <ThemedText style={[styles.insertSlotTextVertical, { color: theme.primary }]}>
-            Place Here
+            Plaats hier
           </ThemedText>
         </Pressable>
       </View>
@@ -416,7 +416,7 @@ function ChainDisplay({
                 onPress={() => onInsertPosition(idx)}
               >
                 <ThemedText style={[styles.insertSlotTextVertical, { color: theme.primary }]}>
-                  Place Here
+                  Plaats hier
                 </ThemedText>
               </Pressable>
             ) : null}
@@ -443,7 +443,7 @@ function ChainDisplay({
             onPress={() => onInsertPosition(chain.length)}
           >
             <ThemedText style={[styles.insertSlotTextVertical, { color: theme.primary }]}>
-              Place Here
+              Plaats hier
             </ThemedText>
           </Pressable>
         ) : null}
@@ -478,7 +478,7 @@ function TeamIndicator({ teams, currentTeam }: { teams: TeamState[]; currentTeam
               { color: idx === currentTeam ? "#FFFFFF" : theme.primary },
             ]}
           >
-            {team.name}: {team.chain.length}{team.out ? " (out)" : ""}
+            {team.name}: {team.chain.length}{team.out ? " (af)" : ""}
           </ThemedText>
         </View>
       ))}
@@ -518,7 +518,7 @@ export default function ChainGameScreen() {
         out: false,
       }));
     }
-    return [{ id: 0, name: "Player", chain: [] as ChainSong[], score: 0, out: false }];
+    return [{ id: 0, name: "Speler", chain: [] as ChainSong[], score: 0, out: false }];
   }, [gameMode, teamCount]);
 
   const [teams, setTeams] = useState<TeamState[]>(initialTeams);
@@ -756,18 +756,18 @@ export default function ChainGameScreen() {
       >
         <View style={styles.gameOverContainer}>
           <ThemedText style={[styles.gameOverTitle, { color: theme.primary }]}>
-            Game Over!
+            Spel voorbij!
           </ThemedText>
           <ThemedText style={styles.gameOverWinner}>
             {gameMode === "team"
-              ? `${winner} ${winner?.includes(" & ") ? "win" : "wins"} with ${bestChainLength} songs!`
-              : `Your chain: ${bestChainLength} songs`}
+              ? `${winner} ${winner?.includes(" & ") ? "winnen" : "wint"} met ${bestChainLength} nummers!`
+              : `Je ketting: ${bestChainLength} nummers`}
           </ThemedText>
           <ThemedText style={[styles.gameOverScore, { color: theme.textSecondary }]}>
-            Songs played: {songsPlayed}
+            Gespeelde nummers: {songsPlayed}
           </ThemedText>
           <View style={styles.gameOverButtons}>
-            <GameButton onPress={handleRestart} title="Play Again" variant="primary" />
+            <GameButton onPress={handleRestart} title="Opnieuw spelen" variant="primary" />
           </View>
         </View>
         <AdBanner />
@@ -799,7 +799,7 @@ export default function ChainGameScreen() {
         </ThemedText>
         <View style={{ flex: 1 }} />
         <ThemedText style={[styles.scoreLabel, { color: theme.textSecondary }]}>
-          Songs: {songsPlayed}
+          Nummers: {songsPlayed}
         </ThemedText>
       </View>
 
@@ -837,7 +837,7 @@ export default function ChainGameScreen() {
         ) : awaitingSecondChance && currentSong ? (
           <Animated.View entering={FadeIn.duration(300)} style={styles.secondChancePrompt}>
             <ThemedText style={[styles.secondChanceTitle, { color: theme.text }]}>
-              Wrong position!
+              Verkeerde plek!
             </ThemedText>
             <View style={styles.secondChanceSongInfo}>
               <ThemedText style={styles.secondChanceSongTitle} numberOfLines={1}>
@@ -848,30 +848,30 @@ export default function ChainGameScreen() {
               </ThemedText>
             </View>
             <ThemedText style={[styles.secondChanceQuestion, { color: theme.textSecondary }]}>
-              Did you know this song? You get one more try.
+              Kende je dit nummer? Je krijgt nog één poging.
             </ThemedText>
             <View style={styles.secondChanceButtons}>
               <Pressable
                 style={[styles.secondChanceButton, { backgroundColor: "#22c55e" }]}
                 onPress={handleSecondChanceYes}
               >
-                <ThemedText style={styles.secondChanceButtonText}>Yes - Try Again</ThemedText>
+                <ThemedText style={styles.secondChanceButtonText}>Ja - nog een keer</ThemedText>
               </Pressable>
               <Pressable
                 style={[styles.secondChanceButton, { backgroundColor: "#ef4444" }]}
                 onPress={handleSecondChanceNo}
               >
-                <ThemedText style={styles.secondChanceButtonText}>{"No - I'm Out"}</ThemedText>
+                <ThemedText style={styles.secondChanceButtonText}>Nee - ik ben af</ThemedText>
               </Pressable>
             </View>
           </Animated.View>
         ) : (
           <View style={styles.hiddenCompact}>
             <ThemedText style={[styles.guessText, { color: theme.text }]}>
-              Where does this song belong?
+              Waar hoort dit nummer?
             </ThemedText>
             <ThemedText style={[styles.guessSubtext, { color: theme.textSecondary }]}>
-              Pick a position, then see if you're right
+              Kies een plek en kijk of je gelijk hebt
             </ThemedText>
           </View>
         )}
@@ -889,13 +889,13 @@ export default function ChainGameScreen() {
         {waitingForNextSong ? (
           <GameButton
             onPress={allTeamsOut ? finishGame : handleNextSong}
-            title={allTeamsOut ? "See Result" : "Next Song"}
+            title={allTeamsOut ? "Bekijk uitslag" : "Volgende nummer"}
             variant="primary"
           />
         ) : !awaitingSecondChance ? (
           <GameButton
             onPress={handleSkip}
-            title="Skip Song"
+            title="Nummer overslaan"
             variant="secondary"
             disabled={!currentSong || isRevealed}
           />

@@ -48,6 +48,8 @@ jobs:
           if [ -n "$CUSTOM_DOMAIN" ]; then
             echo "$CUSTOM_DOMAIN" > dist/CNAME
           fi
+          # The app's text is Dutch.
+          sed -i 's/<html lang="en"/<html lang="nl"/' dist/index.html
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
 

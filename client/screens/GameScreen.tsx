@@ -157,7 +157,7 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
       const token = await getValidAccessToken();
       console.log("[SpotifyPlayer] Got token:", token ? "yes" : "no");
       if (!token) {
-        setError("Please connect Spotify in Settings");
+        setError("Koppel Spotify in Instellingen");
         setDevicesFetched(true);
         return;
       }
@@ -172,11 +172,11 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
         const errorBody = await response.text();
         console.log("[SpotifyPlayer] Devices error body:", errorBody);
         if (response.status === 401) {
-          setError("Session expired. Please reconnect Spotify in Settings");
+          setError("Sessie verlopen. Koppel Spotify opnieuw in Instellingen");
         } else if (response.status === 403) {
-          setError("Missing permissions. Please reconnect Spotify");
+          setError("Rechten ontbreken. Koppel Spotify opnieuw");
         } else {
-          setError("Could not connect to Spotify");
+          setError("Kan geen verbinding maken met Spotify");
         }
         setDevicesFetched(true);
         return;
@@ -193,7 +193,7 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
         setSelectedDevice(data.devices[0].id);
       }
     } catch (err: any) {
-      setError("Could not connect to Spotify");
+      setError("Kan geen verbinding maken met Spotify");
       setDevicesFetched(true);
       console.error("[SpotifyPlayer] Failed to fetch devices:", err);
     }
@@ -223,7 +223,7 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
     try {
       const token = await getValidAccessToken();
       if (!token) {
-        setError("Please connect Spotify in Settings");
+        setError("Koppel Spotify in Instellingen");
         setIsLoading(false);
         return;
       }
@@ -243,18 +243,18 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
       
       if (!response.ok) {
         if (response.status === 404) {
-          setError("No active device. Open Spotify on a device first");
+          setError("Geen actief apparaat. Open eerst Spotify op een apparaat");
         } else if (response.status === 401) {
-          setError("Session expired. Please reconnect Spotify");
+          setError("Sessie verlopen. Koppel Spotify opnieuw");
         } else {
-          setError("Failed to play track");
+          setError("Afspelen mislukt");
         }
       } else {
         setIsPlaying(true);
         setHasAutoPlayed(true);
       }
     } catch (err: any) {
-      setError("Failed to play track");
+      setError("Afspelen mislukt");
       console.error("Play error:", err);
     } finally {
       setIsLoading(false);
@@ -302,10 +302,10 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
     return (
       <View style={[styles.spotifyContainer, { backgroundColor: "#1DB954" }]}>
         <ThemedText style={styles.spotifyTitle}>
-          Connect Your Spotify
+          Koppel je Spotify
         </ThemedText>
         <ThemedText style={[styles.spotifySubtext, { color: "#FFFFFF", opacity: 0.8 }]}>
-          Go to Settings to connect your Spotify account
+          Ga naar Instellingen om je Spotify-account te koppelen
         </ThemedText>
       </View>
     );
@@ -315,10 +315,10 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
     return (
       <View style={[styles.spotifyContainer, { backgroundColor: theme.backgroundDefault }]}>
         <ThemedText style={[styles.spotifyMessage, { color: theme.textSecondary }]}>
-          Spotify link not available for this song
+          Geen Spotify-link voor dit nummer
         </ThemedText>
         <ThemedText style={[styles.spotifySubtext, { color: theme.textSecondary }]}>
-          Switch to YouTube mode in Settings
+          Kies YouTube in Instellingen
         </ThemedText>
       </View>
     );
@@ -329,7 +329,7 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
       <View style={[styles.spotifyContainer, { backgroundColor: "#1DB954" }]}>
         <ActivityIndicator size="large" color="#FFFFFF" />
         <ThemedText style={styles.spotifyTitle}>
-          Connecting to Spotify...
+          Verbinden met Spotify...
         </ThemedText>
       </View>
     );
@@ -339,14 +339,14 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
     return (
       <View style={[styles.spotifyContainer, { backgroundColor: "#1DB954" }]}>
         <ThemedText style={styles.spotifyTitle}>
-          {error || "No active Spotify devices"}
+          {error || "Geen actieve Spotify-apparaten"}
         </ThemedText>
         <ThemedText style={[styles.spotifySubtext, { color: "#FFFFFF", opacity: 0.8 }]}>
-          Open Spotify on any device first
+          Open eerst Spotify op een apparaat
         </ThemedText>
         <View style={styles.spotifyButtonRow}>
           <Pressable style={styles.spotifyButton} onPress={fetchDevices}>
-            <ThemedText style={styles.spotifyButtonText}>Retry</ThemedText>
+            <ThemedText style={styles.spotifyButtonText}>Opnieuw</ThemedText>
           </Pressable>
           <Pressable style={styles.spotifyButton} onPress={openSpotify}>
             <ThemedText style={styles.spotifyButtonText}>Open Spotify</ThemedText>
@@ -356,7 +356,7 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
     );
   }
 
-  const selectedDeviceName = devices.find(d => d.id === selectedDevice)?.name || "Select device";
+  const selectedDeviceName = devices.find(d => d.id === selectedDevice)?.name || "Kies apparaat";
 
   return (
     <View style={[styles.spotifyContainer, { backgroundColor: "#1DB954" }]}>
@@ -374,7 +374,7 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
             </ThemedText>
           </Pressable>
           <Pressable style={styles.retryButton} onPress={fetchDevices}>
-            <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+            <ThemedText style={styles.retryButtonText}>Opnieuw</ThemedText>
           </Pressable>
         </View>
         
@@ -414,14 +414,14 @@ function SpotifyPlayer({ spotifyUri, artist, title, onSongChange }: {
         {isLoading ? (
           <ActivityIndicator size="small" color="#1DB954" />
         ) : (
-          <ThemedText style={{ color: "#1DB954", fontSize: 18, fontWeight: "700" }}>
-            {isPlaying ? "Pause" : "Play"}
+          <ThemedText style={{ color: "#1DB954", fontSize: 15, fontWeight: "700" }}>
+            {isPlaying ? "Pauze" : "Afspelen"}
           </ThemedText>
         )}
       </Pressable>
 
       <ThemedText style={styles.spotifyNowPlaying}>
-        {isPlaying ? "Playing on Spotify" : "Tap to play"}
+        {isPlaying ? "Speelt af op Spotify" : "Tik om af te spelen"}
       </ThemedText>
     </View>
   );
@@ -547,7 +547,7 @@ export default function GameScreen() {
             <ThemedText
               style={[styles.guessText, { color: theme.textSecondary }]}
             >
-              Can you guess this song?
+              Weet jij welk nummer dit is?
             </ThemedText>
           </View>
         )}
@@ -557,14 +557,14 @@ export default function GameScreen() {
         {!isRevealed && currentSong ? (
           <GameButton
             onPress={handleReveal}
-            title="Reveal"
+            title="Onthullen"
             variant="primary"
             disabled={!currentSong}
           />
         ) : null}
         <GameButton
           onPress={handleNextSong}
-          title="Next Song"
+          title="Volgende nummer"
           variant={isRevealed ? "primary" : "secondary"}
           disabled={!currentSong}
         />

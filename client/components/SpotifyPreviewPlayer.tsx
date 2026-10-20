@@ -118,7 +118,7 @@ export function SpotifyPreviewPlayer({
   if (Platform.OS !== "web") {
     return (
       <View style={[styles.container, compact && styles.compact]}>
-        <ThemedText style={styles.text}>Spotify preview is available on the website.</ThemedText>
+        <ThemedText style={styles.text}>Het Spotify-fragment is beschikbaar op de website.</ThemedText>
       </View>
     );
   }
@@ -126,7 +126,7 @@ export function SpotifyPreviewPlayer({
   if (!spotifyUri) {
     return (
       <View style={[styles.container, compact && styles.compact]}>
-        <ThemedText style={styles.text}>No Spotify preview for this song.</ThemedText>
+        <ThemedText style={styles.text}>Geen Spotify-fragment voor dit nummer.</ThemedText>
       </View>
     );
   }
@@ -141,7 +141,7 @@ export function SpotifyPreviewPlayer({
         >
           {isReady ? (
             <ThemedText style={[styles.playLabel, compact && styles.playLabelCompact]}>
-              {isPaused ? "Play" : "Pause"}
+              {isPaused ? "Afspelen" : "Pauze"}
             </ThemedText>
           ) : (
             <ActivityIndicator size="small" color={SPOTIFY_GREEN} />
@@ -149,12 +149,12 @@ export function SpotifyPreviewPlayer({
         </Pressable>
         <View style={styles.info}>
           <ThemedText style={styles.text}>
-            {duration > 0 ? `${formatTime(position)} / ${formatTime(duration)}` : "Spotify preview"}
+            {duration > 0 ? `${formatTime(position)} / ${formatTime(duration)}` : "Spotify-fragment"}
           </ThemedText>
           {!compact ? (
             <Pressable onPress={() => setShowEmbed((shown) => !shown)}>
               <ThemedText style={styles.link}>
-                {showEmbed ? "Hide Spotify player" : "Not playing? Show the Spotify player (reveals the song)"}
+                {showEmbed ? "Spotify-speler verbergen" : "Speelt er niets? Toon de Spotify-speler (verklapt het nummer)"}
               </ThemedText>
             </Pressable>
           ) : null}
@@ -210,11 +210,11 @@ const styles = StyleSheet.create({
   },
   playLabel: {
     color: SPOTIFY_GREEN,
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "700",
   },
   playLabelCompact: {
-    fontSize: 14,
+    fontSize: 12,
   },
   text: {
     color: "#FFFFFF",

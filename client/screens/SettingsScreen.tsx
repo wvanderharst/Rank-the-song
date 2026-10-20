@@ -24,10 +24,10 @@ function SongListSelector() {
   return (
     <View style={[styles.section, { backgroundColor: theme.backgroundDefault }]}>
       <View style={styles.sectionHeader}>
-        <ThemedText style={styles.sectionTitle}>Song List</ThemedText>
+        <ThemedText style={styles.sectionTitle}>Nummerlijst</ThemedText>
       </View>
       <ThemedText style={[styles.sectionText, { color: theme.textSecondary }]}>
-        Choose which song list to play from.
+        Kies met welke nummerlijst je speelt.
       </ThemedText>
       
       {selectedSongList ? (
@@ -43,7 +43,7 @@ function SongListSelector() {
         onPress={() => navigation.navigate("SongList")}
       >
         <ThemedText style={styles.selectListButtonText}>
-          Change Song List
+          Andere lijst kiezen
         </ThemedText>
       </Pressable>
     </View>
@@ -73,10 +73,10 @@ function SongHistory() {
     return (
       <View style={[styles.section, { backgroundColor: theme.backgroundDefault }]}>
         <View style={styles.sectionHeader}>
-          <ThemedText style={styles.sectionTitle}>History</ThemedText>
+          <ThemedText style={styles.sectionTitle}>Geschiedenis</ThemedText>
         </View>
         <ThemedText style={[styles.sectionText, { color: theme.textSecondary }]}>
-          No songs played yet. Start playing to see your history!
+          Nog geen nummers gespeeld. Begin met spelen om je geschiedenis te zien!
         </ThemedText>
       </View>
     );
@@ -85,16 +85,16 @@ function SongHistory() {
   return (
     <View style={[styles.section, { backgroundColor: theme.backgroundDefault }]}>
       <View style={styles.sectionHeader}>
-        <ThemedText style={styles.sectionTitle}>History</ThemedText>
+        <ThemedText style={styles.sectionTitle}>Geschiedenis</ThemedText>
         <View style={{ flex: 1 }} />
         <Pressable onPress={clearHistory}>
-          <ThemedText style={{ color: theme.textSecondary, fontSize: 14 }}>Clear</ThemedText>
+          <ThemedText style={{ color: theme.textSecondary, fontSize: 14 }}>Wissen</ThemedText>
         </Pressable>
       </View>
 
       <View style={styles.historySortRow}>
         <ThemedText style={[styles.sectionText, { color: theme.textSecondary }]}>
-          Sort by placement
+          Sorteer op notering
         </ThemedText>
         <Pressable
           style={[
@@ -144,7 +144,7 @@ function SongHistory() {
 
       {songHistory.length > 20 ? (
         <ThemedText style={[styles.sectionText, { color: theme.textSecondary, marginTop: Spacing.md, textAlign: "center" }]}>
-          Showing 20 of {songHistory.length} songs
+          20 van {songHistory.length} nummers getoond
         </ThemedText>
       ) : null}
     </View>
@@ -163,14 +163,14 @@ function SpotifyLoginSection() {
       ]}
     >
       <View style={styles.sectionHeader}>
-        <ThemedText style={styles.sectionTitle}>Spotify Account</ThemedText>
+        <ThemedText style={styles.sectionTitle}>Spotify-account</ThemedText>
       </View>
       
       {isAuthenticated ? (
         <>
           <View style={styles.spotifyStatus}>
             <ThemedText style={[styles.sectionText, { color: "#1DB954" }]}>
-              Connected to Spotify
+              Gekoppeld aan Spotify
             </ThemedText>
           </View>
           <Pressable
@@ -182,7 +182,7 @@ function SpotifyLoginSection() {
               <ActivityIndicator size="small" color={theme.textSecondary} />
             ) : (
               <ThemedText style={[styles.spotifyButtonText, { color: theme.textSecondary }]}>
-                Disconnect
+                Ontkoppelen
               </ThemedText>
             )}
           </Pressable>
@@ -190,7 +190,7 @@ function SpotifyLoginSection() {
       ) : (
         <>
           <ThemedText style={[styles.sectionText, { color: theme.textSecondary }]}>
-            Connect your Spotify account to control playback on your devices.
+            Koppel je Spotify-account om het afspelen op je apparaten te bedienen.
           </ThemedText>
           <View style={styles.spotifyButtonRow}>
             <Pressable
@@ -202,7 +202,7 @@ function SpotifyLoginSection() {
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <ThemedText style={[styles.spotifyButtonText, { color: "#FFFFFF" }]}>
-                  Connect Spotify
+                  Spotify koppelen
                 </ThemedText>
               )}
             </Pressable>
@@ -217,14 +217,14 @@ function SpotifyLoginSection() {
                 <ActivityIndicator size="small" color={theme.primary} />
               ) : (
                 <ThemedText style={[styles.spotifyButtonText, { color: theme.primary }]}>
-                  Refresh Connection
+                  Verbinding vernieuwen
                 </ThemedText>
               )}
             </Pressable>
           ) : null}
           {Platform.OS === "web" ? (
             <ThemedText style={[styles.sectionText, { color: theme.textSecondary, fontSize: 12, marginTop: Spacing.xs }]}>
-              {"The app connects automatically after you log in. If it doesn't, tap \"Refresh Connection\"."}
+              {"De app maakt automatisch verbinding nadat je bent ingelogd. Lukt dat niet, tik dan op “Verbinding vernieuwen”."}
             </ThemedText>
           ) : null}
         </>
@@ -281,19 +281,19 @@ function GameModeSection() {
   const { gameMode, setGameMode, orderingMode, setOrderingMode, chainDifficulty, setChainDifficulty, teamCount, setTeamCount } = useSettings();
 
   const gameModes: { value: GameMode; label: string; description: string }[] = [
-    { value: "simple", label: "Simple", description: "Play random songs and reveal" },
-    { value: "singleplayer", label: "Single Player", description: "Build the longest chain you can until you make a mistake" },
-    { value: "team", label: "Team Mode", description: "Take turns; a mistake knocks a team out, longest chain wins" },
+    { value: "simple", label: "Simpel", description: "Speel willekeurige nummers en onthul ze" },
+    { value: "singleplayer", label: "Eén speler", description: "Zo lang mogelijk, tot je eerste fout" },
+    { value: "team", label: "Teams", description: "Om de beurt, bij een fout ben je af" },
   ];
 
   const orderingModes: { value: OrderingMode; label: string }[] = [
-    { value: "ranking", label: "Ranking" },
-    { value: "year", label: "Year" },
+    { value: "ranking", label: "Notering" },
+    { value: "year", label: "Jaar" },
   ];
 
   const difficultyModes: { value: ChainDifficulty; label: string; description: string }[] = [
-    { value: "easy", label: "Easy", description: "Second chances included" },
-    { value: "hard", label: "Hard", description: "One guess per song" },
+    { value: "easy", label: "Makkelijk", description: "Met tweede kansen" },
+    { value: "hard", label: "Moeilijk", description: "Eén poging per nummer" },
   ];
 
   const teamOptions = [2, 3, 4, 5, 6];
@@ -301,7 +301,7 @@ function GameModeSection() {
   return (
     <View style={[styles.section, { backgroundColor: theme.backgroundDefault }]}>
       <View style={styles.sectionHeader}>
-        <ThemedText style={styles.sectionTitle}>Game Mode</ThemedText>
+        <ThemedText style={styles.sectionTitle}>Spelmodus</ThemedText>
       </View>
       
       <View style={styles.gameModeContainer}>
@@ -345,7 +345,7 @@ function GameModeSection() {
         <>
           <View style={styles.subsectionHeader}>
             <ThemedText style={[styles.subsectionTitle, { color: theme.textSecondary }]}>
-              Order By
+              Sorteren op
             </ThemedText>
           </View>
           <View style={styles.toggleContainer}>
@@ -382,7 +382,7 @@ function GameModeSection() {
         <>
           <View style={styles.subsectionHeader}>
             <ThemedText style={[styles.subsectionTitle, { color: theme.textSecondary }]}>
-              Difficulty
+              Moeilijkheid
             </ThemedText>
           </View>
           <View style={styles.toggleContainer}>
@@ -428,7 +428,7 @@ function GameModeSection() {
         <>
           <View style={styles.subsectionHeader}>
             <ThemedText style={[styles.subsectionTitle, { color: theme.textSecondary }]}>
-              Number of Teams
+              Aantal teams
             </ThemedText>
           </View>
           <View style={styles.teamCountContainer}>
@@ -476,10 +476,10 @@ function RemoveAdsSection() {
     try {
       const success = await purchaseRemoveAds();
       if (!success) {
-        Alert.alert("Purchase Failed", "Unable to complete the purchase. Please try again.");
+        Alert.alert("Aankoop mislukt", "De aankoop kon niet worden voltooid. Probeer het opnieuw.");
       }
     } catch (error) {
-      Alert.alert("Error", "An error occurred during purchase.");
+      Alert.alert("Fout", "Er ging iets mis tijdens de aankoop.");
     } finally {
       setIsPurchasing(false);
     }
@@ -490,12 +490,12 @@ function RemoveAdsSection() {
     try {
       const success = await restorePurchases();
       if (success) {
-        Alert.alert("Restored", "Your purchase has been restored. Ads are now disabled.");
+        Alert.alert("Hersteld", "Je aankoop is hersteld. Advertenties staan nu uit.");
       } else {
-        Alert.alert("No Purchases Found", "No previous purchases were found to restore.");
+        Alert.alert("Geen aankopen gevonden", "Er zijn geen eerdere aankopen gevonden om te herstellen.");
       }
     } catch (error) {
-      Alert.alert("Error", "An error occurred while restoring purchases.");
+      Alert.alert("Fout", "Er ging iets mis bij het herstellen van aankopen.");
     } finally {
       setIsRestoring(false);
     }
@@ -512,16 +512,16 @@ function RemoveAdsSection() {
   return (
     <View style={[styles.section, { backgroundColor: theme.backgroundDefault }]}>
       <View style={styles.sectionHeader}>
-        <ThemedText style={styles.sectionTitle}>Remove Ads</ThemedText>
+        <ThemedText style={styles.sectionTitle}>Advertenties verwijderen</ThemedText>
       </View>
       {adsDisabled ? (
         <ThemedText style={[styles.sectionText, { color: "#22c55e" }]}>
-          Ads are disabled. Thank you for your support!
+          Advertenties staan uit. Bedankt voor je steun!
         </ThemedText>
       ) : (
         <>
           <ThemedText style={[styles.sectionText, { color: theme.textSecondary }]}>
-            Remove all ads permanently with a one-time purchase.
+            Verwijder alle advertenties voorgoed met een eenmalige aankoop.
           </ThemedText>
           <Pressable
             style={[styles.purchaseButton, { backgroundColor: theme.primary }]}
@@ -532,7 +532,7 @@ function RemoveAdsSection() {
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <ThemedText style={styles.purchaseButtonText}>
-                Remove Ads
+                Advertenties verwijderen
               </ThemedText>
             )}
           </Pressable>
@@ -545,7 +545,7 @@ function RemoveAdsSection() {
               <ActivityIndicator size="small" color={theme.textSecondary} />
             ) : (
               <ThemedText style={[styles.restoreButtonText, { color: theme.textSecondary }]}>
-                Restore Purchase
+                Aankoop herstellen
               </ThemedText>
             )}
           </Pressable>
@@ -582,12 +582,12 @@ export default function SettingsScreen() {
           ]}
         >
           <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>Play Mode</ThemedText>
+            <ThemedText style={styles.sectionTitle}>Afspeelmodus</ThemedText>
           </View>
           <ThemedText style={[styles.sectionText, { color: theme.textSecondary }]}>
             {Platform.OS === "web"
-              ? "Choose how you want to play songs. YouTube plays the full song, Spotify plays a 30-second preview (no login needed)."
-              : "Choose how you want to play songs. YouTube plays the full song, Spotify opens in a web player."}
+              ? "Kies hoe je nummers afspeelt. YouTube speelt het hele nummer, Spotify speelt een fragment van 30 seconden (zonder inloggen)."
+              : "Kies hoe je nummers afspeelt. YouTube speelt het hele nummer, Spotify opent in een webspeler."}
           </ThemedText>
           <PlayModeToggle />
         </View>
@@ -605,19 +605,19 @@ export default function SettingsScreen() {
           ]}
         >
           <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>About</ThemedText>
+            <ThemedText style={styles.sectionTitle}>Over</ThemedText>
           </View>
           <ThemedText style={[styles.sectionText, { color: theme.textSecondary }]}>
-            Rank the Song is a game that tests your knowledge of the popularity of hits. Lists selected can be voted lists or popularity lists from a given year.
+            Rank the Song is een spel dat test hoe goed je de populariteit van hits kent. De lijsten zijn stemlijsten of hitlijsten van een bepaald jaar.
           </ThemedText>
           <ThemedText style={[styles.sectionText, { color: theme.textSecondary, marginTop: Spacing.md }]}>
-            This game randomly selects songs from the list. Listen and try to guess the song before revealing its placement!
+            Het spel kiest willekeurig nummers uit de lijst. Luister en probeer het nummer te raden voordat je de notering onthult!
           </ThemedText>
           <ThemedText style={[styles.sectionText, { color: theme.textSecondary, marginTop: Spacing.md }]}>
-            For Dutch players I suggest starting with the top2000 that is the default, for international players I suggest starting with the 10000 greastest hits list. These lists are also the most fun to play ranking based on year of release. 
+            Voor Nederlandse spelers raad ik aan te beginnen met de Top 2000, die standaard is ingesteld. Internationale spelers kunnen het best beginnen met de lijst met de 10.000 grootste hits. Met deze lijsten is het ook het leukst om op jaar van uitkomen te sorteren.
           </ThemedText>
           <ThemedText style={[styles.sectionText, { color: theme.textSecondary, marginTop: Spacing.md }]}>
-            The Youtube version has some issues, due to song choosing algorithm. The spotify version is more reliable. However the Youtube version ofcourse has the benefit of not needing a spotify account. However deleting ads from the app, will not disable ads in the Youtube player.
+            De YouTube-versie heeft soms problemen door de manier waarop video’s worden gekozen. De Spotify-versie is betrouwbaarder. De YouTube-versie heeft natuurlijk wel als voordeel dat je geen Spotify-account nodig hebt. Let op: als je de advertenties in de app verwijdert, blijven de advertenties in de YouTube-speler gewoon zichtbaar.
           </ThemedText>
         </View>
 
@@ -628,30 +628,30 @@ export default function SettingsScreen() {
           ]}
         >
           <View style={styles.sectionHeader}>
-            <ThemedText style={styles.sectionTitle}>How to Play</ThemedText>
+            <ThemedText style={styles.sectionTitle}>Zo speel je</ThemedText>
           </View>
           <View style={styles.instructionItem}>
             <ThemedText style={styles.instructionNumber}>1</ThemedText>
             <ThemedText style={[styles.instructionText, { color: theme.textSecondary }]}>
-              A random song from the selected list will be loaded
+              Er wordt een willekeurig nummer uit de gekozen lijst geladen
             </ThemedText>
           </View>
           <View style={styles.instructionItem}>
             <ThemedText style={styles.instructionNumber}>2</ThemedText>
             <ThemedText style={[styles.instructionText, { color: theme.textSecondary }]}>
-              Play the video and try to guess the song
+              Speel het nummer af en probeer het te raden
             </ThemedText>
           </View>
           <View style={styles.instructionItem}>
             <ThemedText style={styles.instructionNumber}>3</ThemedText>
             <ThemedText style={[styles.instructionText, { color: theme.textSecondary }]}>
-              Press "Reveal" to see the placement, artist, and title
+              Druk op “Onthullen” om de notering, artiest en titel te zien
             </ThemedText>
           </View>
           <View style={styles.instructionItem}>
             <ThemedText style={styles.instructionNumber}>4</ThemedText>
             <ThemedText style={[styles.instructionText, { color: theme.textSecondary }]}>
-              Press "Next Song" to play another round
+              Druk op “Volgende nummer” voor een nieuwe ronde
             </ThemedText>
           </View>
         </View>

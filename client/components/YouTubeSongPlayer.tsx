@@ -144,11 +144,14 @@ export function YouTubePlayControls({ videoId, song }: Omit<PlayerProps, "onEnde
         disabled={!videoId}
       >
         <ThemedText style={styles.playButtonText}>
-          {isPlaying ? "Pause" : "Play"}
+          {isPlaying ? "Pauze" : "Afspelen"}
         </ThemedText>
       </Pressable>
+      <ThemedText style={[styles.scrollHint, { color: theme.text }]}>
+        Voor kijkplezier: scroll naar beneden ↓
+      </ThemedText>
       <ThemedText style={[styles.audioHint, { color: theme.textSecondary }]}>
-        The YouTube player is at the bottom of the page. If nothing plays, press play there.
+        De YouTube-speler staat onderaan de pagina. Speelt er niets? Druk dan daar op play.
       </ThemedText>
     </View>
   );
@@ -164,7 +167,7 @@ export function YouTubeBottomPlayer({ videoId, song, onEnded }: PlayerProps) {
   return (
     <View style={styles.bottomSection}>
       <ThemedText style={[styles.bottomLabel, { color: theme.textSecondary }]}>
-        Now playing on YouTube
+        Nu op YouTube
       </ThemedText>
       <SongPlayer videoId={videoId} song={song} onEnded={onEnded} />
     </View>
@@ -211,8 +214,13 @@ const styles = StyleSheet.create({
   },
   playButtonText: {
     color: "#FFFFFF",
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "700",
+  },
+  scrollHint: {
+    fontSize: 15,
+    fontWeight: "600",
+    textAlign: "center",
   },
   audioHint: {
     fontSize: 13,

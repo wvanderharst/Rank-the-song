@@ -38,9 +38,9 @@ export default function RootStackNavigator() {
   const getHeaderTitle = () => {
     switch (gameMode) {
       case "singleplayer":
-        return "Chain Game";
+        return "Kettingspel";
       case "team":
-        return "Team Mode";
+        return "Teams";
       default:
         return "Rank The Song";
     }
@@ -58,7 +58,7 @@ export default function RootStackNavigator() {
               pressColor={theme.primary}
               pressOpacity={0.7}
             >
-              <Text style={{ color: theme.text, fontSize: 16, fontWeight: "600" }}>Settings</Text>
+              <Text style={{ color: theme.text, fontSize: 16, fontWeight: "600" }}>Instellingen</Text>
             </HeaderButton>
           ),
         })}
@@ -70,14 +70,14 @@ export default function RootStackNavigator() {
         component={SettingsScreen}
         options={({ navigation }) => ({
           presentation: "modal",
-          headerTitle: "Settings",
+          headerTitle: "Instellingen",
           headerLeft: () => (
             <HeaderButton
               onPress={() => navigation.goBack()}
               pressColor={theme.primary}
               pressOpacity={0.7}
             >
-              <Text style={{ color: theme.text, fontSize: 16, fontWeight: "600" }}>Close</Text>
+              <Text style={{ color: theme.text, fontSize: 16, fontWeight: "600" }}>Sluiten</Text>
             </HeaderButton>
           ),
         })}
@@ -86,14 +86,14 @@ export default function RootStackNavigator() {
         name="SongList"
         component={SongListScreen}
         options={({ navigation }) => ({
-          headerTitle: "Song Lists",
+          headerTitle: "Nummerlijsten",
           headerLeft: () => (
             <HeaderButton
               onPress={() => navigation.goBack()}
               pressColor={theme.primary}
               pressOpacity={0.7}
             >
-              <Text style={{ color: theme.text, fontSize: 16, fontWeight: "600" }}>Back</Text>
+              <Text style={{ color: theme.text, fontSize: 16, fontWeight: "600" }}>Terug</Text>
             </HeaderButton>
           ),
         })}
