@@ -7,6 +7,7 @@ import {
   Platform,
   Linking,
   Pressable,
+  ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -513,15 +514,16 @@ export default function GameScreen() {
   }, [currentSong, addToHistory]);
 
   return (
-    <ThemedView
-      style={[
-        styles.container,
-        {
-          paddingTop: headerHeight + Spacing.xl,
-          paddingBottom: insets.bottom + Spacing.xl,
-        },
-      ]}
-    >
+    <ThemedView style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop: headerHeight + Spacing.xl,
+            paddingBottom: insets.bottom + Spacing.xl,
+          },
+        ]}
+      >
       <View style={styles.playerContainer}>
         {playMode === "youtube" ? (
           <View style={styles.youtubeSection}>
@@ -696,13 +698,17 @@ export default function GameScreen() {
         />
       </View>
       <AdBanner />
+      </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
+  },
+  container: {
+    flexGrow: 1,
     paddingHorizontal: Spacing.lg,
   },
   playerContainer: {
