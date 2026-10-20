@@ -305,9 +305,23 @@ async function entriesFromSource(url: string): Promise<ListEntry[]> {
   return entriesFromRows(parseCsv(text));
 }
 
+// All URLs in a page, including ones inside embedded JSON (with escaped slashes).
+function urlsInPage(html: string): string[] {
+  const text = html.replace(/\\u002F/gi, "/").replace(/\\\//g, "/").replace(/&amp;/g, "&");
+  const urls = new Set<string>();
+  const pattern = /(?:href|src)="([^"]+)"|(https?:\/\/[^\s"'<>\\)]+)|"([^"\s<>]+\.(?:xlsx|xls|csv|pdf)(?:\?[^"]*)?)"/gi;
+  for (const m of text.matchAll(pattern)) urls.add(m[1] || m[2] || m[3]);
+  return [...urls];
+}
+
 // A web page with the list: an Excel/CSV download link, or chart data embedded in the page.
 async function entriesFromPage(html: string, pageUrl: string): Promise<ListEntry[]> {
-  const downloads = [...html.matchAll(/href="([^"]+\.(?:xlsx|csv)(?:\?[^"]*)?)"/gi)].map((m) => absoluteUrl(m[1], pageUrl));
+  logLinks(html, pageUrl);
+  const downloads = [...new Set(
+    urlsInPage(html)
+      .filter((url) => /\.(xlsx|csv)(\?|#|$)/i.test(url))
+      .map((url) => absoluteUrl(url, pageUrl)),
+  )];
   console.log(`${pageUrl}: downloads found: ${downloads.join(", ") || "none"}`);
   for (const download of downloads) {
     try {
@@ -324,17 +338,26 @@ async function entriesFromPage(html: string, pageUrl: string): Promise<ListEntry
 // Dry runs list the links a page has, to see where NPO puts the list this year.
 function logLinks(html: string, pageUrl: string) {
   if (!DRY_RUN) return;
-  const links = new Set(
-    [...html.matchAll(/(?:href|src)="([^"]*)"/gi)]
-      .map((m) => m[1])
-      .filter((href) => /top-?2000|chart|lijst|\.xlsx|\.csv|\.pdf|api/i.test(href)),
+  const links = urlsInPage(html).filter((url) =>
+    /top-?2000|chart|lijst|xls|csv|pdf|download|api|cms-assets/i.test(url) && !/\.(png|jpe?g|webp|svg|css|js)(\?|$)/i.test(url),
   );
-  console.log(`${pageUrl}: ${links.size} relevant links:\n  ${[...links].slice(0, 60).join("\n  ")}`);
+  console.log(`${pageUrl}: ${links.length} relevant links:\n  ${links.slice(0, 80).join("\n  ")}`);
   const nextData = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
   if (nextData) {
     try {
       const data = JSON.parse(nextData[1]);
-      console.log(`${pageUrl}: __NEXT_DATA__ page=${data.page} pageProps keys=${Object.keys(data.props?.pageProps || {}).join(",")}`);
+      const props = data.props?.pageProps || {};
+      console.log(`${pageUrl}: __NEXT_DATA__ page=${data.page} pageProps keys=${Object.keys(props).join(",")}`);
+      // Shape of the page data (keys and array sizes, a few levels deep).
+      const shape = (node: unknown, depth: number): unknown => {
+        if (Array.isArray(node)) return depth > 0 && node.length ? [`${node.length}x`, shape(node[0], depth - 1)] : `array(${node.length})`;
+        if (node && typeof node === "object") {
+          if (depth === 0) return "{…}";
+          return Object.fromEntries(Object.entries(node).slice(0, 25).map(([k, v]) => [k, shape(v, depth - 1)]));
+        }
+        return typeof node === "string" ? node.slice(0, 60) : node;
+      };
+      console.log(`${pageUrl}: page data shape: ${JSON.stringify(shape(props, 4)).slice(0, 4000)}`);
     } catch {}
   }
 }
@@ -380,7 +403,6 @@ async function findOnNpo(): Promise<{ source: string; entries: ListEntry[] } | n
   for (const article of articleUrls) {
     try {
       const html = await fetchText(article);
-      logLinks(html, article);
       const entries = await entriesFromPage(html, article);
       if (entries.length >= 1900) return { source: article, entries };
     } catch (error) {
