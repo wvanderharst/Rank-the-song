@@ -39,8 +39,9 @@ jobs:
 
       - run: npm ci
 
+      # SheetJS reads NPO's Excel file (.xls); the npm registry only has an old version.
       - name: Install Excel reader
-        run: npm install --no-save --no-audit --no-fund exceljs@4.4.0
+        run: npm install --no-save --no-audit --no-fund https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
 
       - name: Update the Top 2000 list
         id: update

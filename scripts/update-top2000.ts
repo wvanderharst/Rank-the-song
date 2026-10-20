@@ -60,7 +60,12 @@ const NPO_PAGES = [
   "https://www.nporadio2.nl/top2000",
   "https://www.nporadio2.nl/nieuws/top2000",
 ];
-const NPO_CHART_PAGE = "https://www.nporadio2.nl/charts/top-2000";
+// Other sites that publish the full list; used when NPO's own pages do not give it.
+const BACKUP_PAGES = [
+  `https://top2000.info/nl/year/${YEAR}`,
+  `https://www.top2000nl.com/lijst/top-2000-lijst-${YEAR}/`,
+  "https://www.top2000nl.com/download-top-2000-lijst/",
+];
 const USER_AGENT = "Mozilla/5.0 (compatible; RankTheSongBot/1.0; +https://github.com/wvanderharst/Rank-the-song)";
 
 const summary: string[] = [];
@@ -137,7 +142,7 @@ function loadKnownSongs(): Map<string, Known> {
 /* -------------------- Finding the list -------------------- */
 
 async function fetchBuffer(url: string): Promise<Buffer> {
-  if (!/^https?:\/\//.test(url)) return fs.readFileSync(url);
+  if (!/^https?:\/\//.test(url)) return fs.readFileSync(url.split("?")[0]);
   const res = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
   if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
@@ -224,26 +229,16 @@ function parseCsv(content: string): string[][] {
   return rows;
 }
 
-async function parseXlsx(buffer: Buffer): Promise<string[][]> {
-  // Installed by the workflow only (npm install --no-save exceljs).
-  const moduleName = "exceljs";
-  const ExcelJS: any = await import(moduleName);
-  const workbook = new (ExcelJS.default ?? ExcelJS).Workbook();
-  await workbook.xlsx.load(buffer);
-  const sheet = workbook.worksheets[0];
-  const rows: string[][] = [];
-  sheet.eachRow({ includeEmpty: false }, (row: any) => {
-    const values: unknown[] = row.values.slice(1);
-    rows.push(values.map((v: any) => {
-      if (v == null) return "";
-      if (typeof v === "object") {
-        if (v.richText) return v.richText.map((t: any) => t.text).join("");
-        return String(v.text ?? v.result ?? "");
-      }
-      return String(v);
-    }));
-  });
-  return rows;
+// Excel (.xlsx and the older .xls NPO uses) via SheetJS, installed by the workflow only.
+async function parseSpreadsheet(buffer: Buffer): Promise<string[][]> {
+  const moduleName = "xlsx";
+  const XLSX: any = await import(moduleName);
+  const read = XLSX.read ?? XLSX.default.read;
+  const utils = XLSX.utils ?? XLSX.default.utils;
+  const workbook = read(buffer, { type: "buffer" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows: unknown[][] = utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
+  return rows.map((row) => row.map((cell) => String(cell ?? "")));
 }
 
 // Finds the biggest array of objects in JSON data that looks like a chart.
@@ -296,9 +291,12 @@ function entriesFromJson(data: unknown): ListEntry[] {
 async function entriesFromSource(url: string): Promise<ListEntry[]> {
   const buffer = await fetchBuffer(url);
   const lower = url.toLowerCase().split("?")[0];
-  if (lower.endsWith(".xlsx") || buffer.subarray(0, 2).toString() === "PK") {
-    return entriesFromRows(await parseXlsx(buffer));
-  }
+  // .xlsx files are zip files ("PK"), old .xls files start with D0 CF 11 E0.
+  const isSpreadsheet =
+    /\.xlsx?$/.test(lower) ||
+    buffer.subarray(0, 2).toString() === "PK" ||
+    (buffer.length >= 4 && buffer.readUInt32BE(0) === 0xd0cf11e0);
+  if (isSpreadsheet) return entriesFromRows(await parseSpreadsheet(buffer));
   const text = buffer.toString("utf8");
   if (lower.endsWith(".json") || /^\s*[[{]/.test(text)) return entriesFromJson(JSON.parse(text));
   if (/<html/i.test(text)) return entriesFromPage(text, url);
@@ -310,7 +308,8 @@ function urlsInPage(html: string): string[] {
   const text = html.replace(/\\u002F/gi, "/").replace(/\\\//g, "/").replace(/&amp;/g, "&");
   const urls = new Set<string>();
   const pattern = /(?:href|src)="([^"]+)"|(https?:\/\/[^\s"'<>\\)]+)|"([^"\s<>]+\.(?:xlsx|xls|csv|pdf)(?:\?[^"]*)?)"/gi;
-  for (const m of text.matchAll(pattern)) urls.add(m[1] || m[2] || m[3]);
+  // Strip the backslash of an escaped closing quote (\") in embedded JSON.
+  for (const m of text.matchAll(pattern)) urls.add((m[1] || m[2] || m[3]).replace(/\\+$/, ""));
   return [...urls];
 }
 
@@ -319,7 +318,7 @@ async function entriesFromPage(html: string, pageUrl: string): Promise<ListEntry
   logLinks(html, pageUrl);
   const downloads = [...new Set(
     urlsInPage(html)
-      .filter((url) => /\.(xlsx|csv)(\?|#|$)/i.test(url))
+      .filter((url) => /\.(xlsx|xls|csv)(\?|#|$)/i.test(url))
       .map((url) => absoluteUrl(url, pageUrl)),
   )];
   console.log(`${pageUrl}: downloads found: ${downloads.join(", ") || "none"}`);
@@ -332,7 +331,20 @@ async function entriesFromPage(html: string, pageUrl: string): Promise<ListEntry
       console.log(`Could not read ${download}: ${(error as Error).message}`);
     }
   }
-  return entriesFromHtml(html);
+
+  const fromJson = entriesFromHtml(html);
+  let fromTables: ListEntry[] = [];
+  const tableRows = rowsFromHtmlTables(html);
+  if (tableRows.length > 0) {
+    if (DRY_RUN) console.log(`${pageUrl}: ${tableRows.length} table rows, first ones:\n  ${tableRows.slice(0, 4).map((r) => r.join(" | ")).join("\n  ")}`);
+    try {
+      fromTables = entriesFromRows(tableRows);
+    } catch (error) {
+      console.log(`${pageUrl}: tables: ${(error as Error).message}`);
+    }
+  }
+  console.log(`${pageUrl}: ${fromJson.length} entries in page data, ${fromTables.length} in tables`);
+  return fromTables.length > fromJson.length ? fromTables : fromJson;
 }
 
 // Dry runs list the links a page has, to see where NPO puts the list this year.
@@ -362,6 +374,30 @@ function logLinks(html: string, pageUrl: string) {
   }
 }
 
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&nbsp;/g, " ")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&#x27;|&apos;|&rsquo;|&lsquo;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(parseInt(n, 10)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&amp;/g, "&");
+}
+
+// Rows of all HTML tables on a page, as plain text cells.
+function rowsFromHtmlTables(html: string): string[][] {
+  const rows: string[][] = [];
+  for (const tr of html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const cells = [...tr[1].matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map((td) =>
+      decodeEntities(td[1].replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim(),
+    );
+    if (cells.length > 0) rows.push(cells);
+  }
+  return rows;
+}
+
 // Chart data embedded in an HTML page (Next.js __NEXT_DATA__ or other JSON script tags).
 function entriesFromHtml(html: string): ListEntry[] {
   let best: ListEntry[] = [];
@@ -385,7 +421,19 @@ function absoluteUrl(href: string, base: string): string {
 
 // The list is announced in a news article ("Dit is de NPO Radio 2 Top 2000-lijst van <YEAR>")
 // with an Excel download; the chart page only switches to the new edition later.
-async function findOnNpo(): Promise<{ source: string; entries: ListEntry[] } | null> {
+// First NPO: the list is announced in a news article ("Dit is de NPO Radio 2 Top 2000-lijst
+// van <YEAR>") with an Excel download; the /top2000 page may also show the chart. Then the
+// backup sites. Each source is skipped if it still shows last year's list.
+async function findList(): Promise<{ source: string; entries: ListEntry[] } | null> {
+  const usable = (source: string, entries: ListEntry[]) => {
+    if (entries.length < 1900) return false;
+    if (isSameAsPreviousList(entries)) {
+      console.log(`${source}: still last year's list`);
+      return false;
+    }
+    return true;
+  };
+
   const articleUrls = new Set<string>();
   for (const page of NPO_PAGES) {
     try {
@@ -395,27 +443,20 @@ async function findOnNpo(): Promise<{ source: string; entries: ListEntry[] } | n
         if (parseInt(m[2], 10) === YEAR) articleUrls.add(absoluteUrl(m[1], page));
       }
       console.log(`${page}: ${html.length} characters, ${articleUrls.size} article link(s) for ${YEAR} so far`);
+      const entries = entriesFromHtml(html);
+      if (usable(page, entries)) return { source: page, entries };
     } catch (error) {
       console.log(`Could not read ${page}: ${(error as Error).message}`);
     }
   }
 
-  for (const article of articleUrls) {
+  for (const page of [...articleUrls, ...BACKUP_PAGES]) {
     try {
-      const html = await fetchText(article);
-      const entries = await entriesFromPage(html, article);
-      if (entries.length >= 1900) return { source: article, entries };
+      const entries = await entriesFromPage(await fetchText(page), page);
+      if (usable(page, entries)) return { source: page, entries };
     } catch (error) {
-      console.log(`Could not read ${article}: ${(error as Error).message}`);
+      console.log(`Could not read ${page}: ${(error as Error).message}`);
     }
-  }
-
-  try {
-    const entries = entriesFromHtml(await fetchText(NPO_CHART_PAGE));
-    console.log(`${NPO_CHART_PAGE}: ${entries.length} chart entries found`);
-    if (entries.length >= 1900) return { source: NPO_CHART_PAGE, entries };
-  } catch (error) {
-    console.log(`Could not read ${NPO_CHART_PAGE}: ${(error as Error).message}`);
   }
   return null;
 }
@@ -519,7 +560,7 @@ async function loadOrCreatePending(): Promise<PendingSong[] | null> {
   if (process.env.SOURCE_URL) {
     found = { source: process.env.SOURCE_URL, entries: await entriesFromSource(process.env.SOURCE_URL) };
   } else {
-    found = await findOnNpo();
+    found = await findList();
   }
   if (!found || isSameAsPreviousList(found.entries)) return null;
 
