@@ -33,7 +33,7 @@ import { getRandomSong as getRandomSongFromList, getSongCount } from "@/lib/song
 import { useAdManager } from "@/hooks/useAds";
 import { AdBanner } from "@/components/AdBanner";
 import { SpotifyPreviewPlayer } from "@/components/SpotifyPreviewPlayer";
-import { YouTubeSongPlayer, YouTubeAudioModePlayer, useYouTubeSong } from "@/components/YouTubeSongPlayer";
+import { YouTubePlayControls, YouTubeBottomPlayer, useYouTubeSong } from "@/components/YouTubeSongPlayer";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLAYER_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
@@ -805,7 +805,7 @@ export default function ChainGameScreen() {
 
       <View style={styles.playerContainer}>
         {playMode === "youtube" && currentSong ? (
-          <YouTubeSongPlayer videoId={currentSong.youtubeId} song={youtubeSong} />
+          <YouTubePlayControls videoId={currentSong.youtubeId} song={youtubeSong} />
         ) : playMode === "spotify" && currentSong ? (
           <CompactSpotifyPlayer spotifyUri={currentSong.spotifyUri} />
         ) : playMode === "preview" && currentSong ? (
@@ -903,7 +903,7 @@ export default function ChainGameScreen() {
       </View>
       <AdBanner />
       {playMode === "youtube" && currentSong ? (
-        <YouTubeAudioModePlayer videoId={currentSong.youtubeId} song={youtubeSong} />
+        <YouTubeBottomPlayer videoId={currentSong.youtubeId} song={youtubeSong} />
       ) : null}
       </ScrollView>
     </ThemedView>

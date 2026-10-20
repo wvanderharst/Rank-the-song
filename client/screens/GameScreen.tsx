@@ -31,7 +31,7 @@ import { getRandomSong as getRandomSongFromList, getSongCount } from "@/lib/song
 import { useAdManager } from "@/hooks/useAds";
 import { AdBanner } from "@/components/AdBanner";
 import { SpotifyPreviewPlayer } from "@/components/SpotifyPreviewPlayer";
-import { YouTubeSongPlayer, YouTubeAudioModePlayer, useYouTubeSong } from "@/components/YouTubeSongPlayer";
+import { YouTubePlayControls, YouTubeBottomPlayer, useYouTubeSong } from "@/components/YouTubeSongPlayer";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLAYER_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
@@ -501,7 +501,7 @@ export default function GameScreen() {
       >
       <View style={styles.playerContainer}>
         {playMode === "youtube" ? (
-          <YouTubeSongPlayer videoId={currentSong?.youtubeId} song={youtubeSong} onEnded={handleNextSong} />
+          <YouTubePlayControls videoId={currentSong?.youtubeId} song={youtubeSong} />
         ) : playMode === "spotify" && currentSong ? (
           <SpotifyPlayer
             spotifyUri={currentSong.spotifyUri}
@@ -571,7 +571,7 @@ export default function GameScreen() {
       </View>
       <AdBanner />
       {playMode === "youtube" ? (
-        <YouTubeAudioModePlayer videoId={currentSong?.youtubeId} song={youtubeSong} onEnded={handleNextSong} />
+        <YouTubeBottomPlayer videoId={currentSong?.youtubeId} song={youtubeSong} onEnded={handleNextSong} />
       ) : null}
       </ScrollView>
     </ThemedView>

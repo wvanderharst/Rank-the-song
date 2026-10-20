@@ -19,16 +19,14 @@ const PLAYER_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
 // YouTube requires embedded players of at least 200x200 px.
 const PLAYER_HEIGHT = Math.max(200, (PLAYER_WIDTH * 9) / 16);
 
-// How YouTube songs are played on a game screen:
-// - Video: the player sits at the top, visible, and starts each song muted.
-// - Audio: the player sits, full size and uncovered, at the bottom of the page
-//   (below everything else), while our own Play/Pause button at the top
-//   controls it. Nothing starts by itself in this mode, since the player is
-//   usually scrolled out of view (YouTube only allows autoplay of a visible player).
+// How YouTube songs are played on a game screen: the player sits, full size and
+// uncovered, at the bottom of the page (below everything else, so the video does
+// not give the song away), while our own Play/Pause button at the top controls
+// it. Nothing starts by itself, since the player is usually scrolled out of view
+// (YouTube only allows autoplay of a visible player).
 export function useYouTubeSong() {
-  const [isAudioOnly, setIsAudioOnly] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  return { isAudioOnly, setIsAudioOnly, isPlaying, setIsPlaying };
+  return { isPlaying, setIsPlaying };
 }
 
 type YouTubeSong = ReturnType<typeof useYouTubeSong>;
@@ -43,22 +41,20 @@ function SongPlayer({ videoId, song, onEnded }: PlayerProps) {
   const { theme } = useTheme();
   const playerRef = useRef<YoutubeIframeRef>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
-  const { isAudioOnly, isPlaying, setIsPlaying } = song;
+  const { isPlaying, setIsPlaying } = song;
 
   const onPlayerReady = useCallback(() => {
     setIsPlayerReady(true);
   }, []);
 
   const onPlayerStateChange = useCallback((state: string) => {
-    // In audio mode, keep our Play/Pause button in sync with the player's own controls.
-    if (isAudioOnly) {
-      if (state === "playing") setIsPlaying(true);
-      if (state === "paused" || state === "ended") setIsPlaying(false);
-    }
+    // Keep our Play/Pause button in sync with the player's own controls.
+    if (state === "playing") setIsPlaying(true);
+    if (state === "paused" || state === "ended") setIsPlaying(false);
     if (state === "ended") {
       onEnded?.();
     }
-  }, [isAudioOnly, onEnded, setIsPlaying]);
+  }, [onEnded, setIsPlaying]);
 
   useEffect(() => {
     if (videoId && isPlayerReady && playerRef.current) {
@@ -75,9 +71,9 @@ function SongPlayer({ videoId, song, onEnded }: PlayerProps) {
           videoId={videoId || ""}
           width={PLAYER_WIDTH}
           height={PLAYER_HEIGHT}
-          play={isAudioOnly ? isPlaying : true}
-          mute={!isAudioOnly}
-          autoplay={!isAudioOnly}
+          play={isPlaying}
+          mute={false}
+          autoplay={false}
           onReady={onPlayerReady}
           onChangeState={onPlayerStateChange}
         />
@@ -102,8 +98,8 @@ function SongPlayer({ videoId, song, onEnded }: PlayerProps) {
     <View style={styles.playerWrapper}>
       <YoutubePlayer
         ref={playerRef}
-        play={isAudioOnly ? isPlaying : true}
-        mute={!isAudioOnly}
+        play={isPlaying}
+        mute={false}
         onReady={onPlayerReady}
         onChangeState={onPlayerStateChange}
         height={PLAYER_HEIGHT}
@@ -116,7 +112,7 @@ function SongPlayer({ videoId, song, onEnded }: PlayerProps) {
           preventFullScreen: true,
           playerLang: "en",
           loop: false,
-          mute: !isAudioOnly,
+          mute: false,
         }}
         webViewProps={{
           allowsInlineMediaPlayback: true,
@@ -128,89 +124,42 @@ function SongPlayer({ videoId, song, onEnded }: PlayerProps) {
 }
 
 /**
- * Top of the game screen: the Video/Audio switch, then the video player, or in
- * audio mode our Play/Pause button for the player at the bottom of the page.
+ * Top of the game screen: our Play/Pause button for the YouTube player at the
+ * bottom of the page (YouTubeBottomPlayer).
  */
-export function YouTubeSongPlayer({ videoId, song, onEnded }: PlayerProps) {
+export function YouTubePlayControls({ videoId, song }: Omit<PlayerProps, "onEnded">) {
   const { theme } = useTheme();
-  const { isAudioOnly, setIsAudioOnly, isPlaying, setIsPlaying } = song;
+  const { isPlaying, setIsPlaying } = song;
 
-  // Each new song waits for the Play button in audio mode.
+  // Each new song waits for the Play button.
   useEffect(() => {
     setIsPlaying(false);
-  }, [videoId, isAudioOnly, setIsPlaying]);
+  }, [videoId, setIsPlaying]);
 
   return (
-    <View style={styles.youtubeSection}>
-      <View style={styles.videoAudioToggle}>
-        <Pressable
-          style={[
-            styles.toggleOption,
-            {
-              backgroundColor: !isAudioOnly ? theme.primary : "transparent",
-              borderColor: theme.primary,
-            },
-          ]}
-          onPress={() => setIsAudioOnly(false)}
-        >
-          <ThemedText
-            style={[
-              styles.toggleLabel,
-              { color: !isAudioOnly ? "#FFFFFF" : theme.primary },
-            ]}
-          >
-            Video
-          </ThemedText>
-        </Pressable>
-        <Pressable
-          style={[
-            styles.toggleOption,
-            {
-              backgroundColor: isAudioOnly ? theme.primary : "transparent",
-              borderColor: theme.primary,
-            },
-          ]}
-          onPress={() => setIsAudioOnly(true)}
-        >
-          <ThemedText
-            style={[
-              styles.toggleLabel,
-              { color: isAudioOnly ? "#FFFFFF" : theme.primary },
-            ]}
-          >
-            Audio
-          </ThemedText>
-        </Pressable>
-      </View>
-      {isAudioOnly ? (
-        <View style={[styles.audioControls, { backgroundColor: theme.backgroundDefault }]}>
-          <Pressable
-            style={[styles.playButton, { backgroundColor: theme.primary }]}
-            onPress={() => setIsPlaying(!isPlaying)}
-            disabled={!videoId}
-          >
-            <ThemedText style={styles.playButtonText}>
-              {isPlaying ? "Pause" : "Play"}
-            </ThemedText>
-          </Pressable>
-          <ThemedText style={[styles.audioHint, { color: theme.textSecondary }]}>
-            The YouTube player is at the bottom of the page. If nothing plays, press play there.
-          </ThemedText>
-        </View>
-      ) : (
-        <SongPlayer videoId={videoId} song={song} onEnded={onEnded} />
-      )}
+    <View style={[styles.audioControls, { backgroundColor: theme.backgroundDefault }]}>
+      <Pressable
+        style={[styles.playButton, { backgroundColor: theme.primary }]}
+        onPress={() => setIsPlaying(!isPlaying)}
+        disabled={!videoId}
+      >
+        <ThemedText style={styles.playButtonText}>
+          {isPlaying ? "Pause" : "Play"}
+        </ThemedText>
+      </Pressable>
+      <ThemedText style={[styles.audioHint, { color: theme.textSecondary }]}>
+        The YouTube player is at the bottom of the page. If nothing plays, press play there.
+      </ThemedText>
     </View>
   );
 }
 
 /**
- * Bottom of the game screen: the YouTube player in audio mode. Place it below
- * everything else on the page. Renders nothing in video mode.
+ * Bottom of the game screen: the YouTube player. Place it below everything
+ * else on the page.
  */
-export function YouTubeAudioModePlayer({ videoId, song, onEnded }: PlayerProps) {
+export function YouTubeBottomPlayer({ videoId, song, onEnded }: PlayerProps) {
   const { theme } = useTheme();
-  if (!song.isAudioOnly) return null;
 
   return (
     <View style={styles.bottomSection}>
@@ -223,29 +172,6 @@ export function YouTubeAudioModePlayer({ videoId, song, onEnded }: PlayerProps) 
 }
 
 const styles = StyleSheet.create({
-  youtubeSection: {
-    alignItems: "center",
-    width: "100%",
-  },
-  videoAudioToggle: {
-    flexDirection: "row",
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  toggleOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 2,
-  },
-  toggleLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
   playerWrapper: {
     borderRadius: BorderRadius.sm,
     overflow: "hidden",

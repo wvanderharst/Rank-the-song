@@ -586,8 +586,8 @@ export default function SettingsScreen() {
           </View>
           <ThemedText style={[styles.sectionText, { color: theme.textSecondary }]}>
             {Platform.OS === "web"
-              ? "Choose how you want to play songs. YouTube shows music videos, Spotify plays a 30-second preview (no login needed)."
-              : "Choose how you want to play songs. YouTube shows music videos, Spotify opens in a web player."}
+              ? "Choose how you want to play songs. YouTube plays the full song, Spotify plays a 30-second preview (no login needed)."
+              : "Choose how you want to play songs. YouTube plays the full song, Spotify opens in a web player."}
           </ThemedText>
           <PlayModeToggle />
         </View>
