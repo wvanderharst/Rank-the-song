@@ -299,8 +299,42 @@ async function entriesFromSource(url: string): Promise<ListEntry[]> {
   }
   const text = buffer.toString("utf8");
   if (lower.endsWith(".json") || /^\s*[[{]/.test(text)) return entriesFromJson(JSON.parse(text));
-  if (/<html/i.test(text)) return entriesFromHtml(text);
+  if (/<html/i.test(text)) return entriesFromPage(text, url);
   return entriesFromRows(parseCsv(text));
+}
+
+// A web page with the list: an Excel/CSV download link, or chart data embedded in the page.
+async function entriesFromPage(html: string, pageUrl: string): Promise<ListEntry[]> {
+  const downloads = [...html.matchAll(/href="([^"]+\.(?:xlsx|csv)(?:\?[^"]*)?)"/gi)].map((m) => absoluteUrl(m[1], pageUrl));
+  console.log(`${pageUrl}: downloads found: ${downloads.join(", ") || "none"}`);
+  for (const download of downloads) {
+    try {
+      const entries = await entriesFromSource(download);
+      if (entries.length >= 1900) return entries;
+      console.log(`${download}: only ${entries.length} entries`);
+    } catch (error) {
+      console.log(`Could not read ${download}: ${(error as Error).message}`);
+    }
+  }
+  return entriesFromHtml(html);
+}
+
+// Dry runs list the links a page has, to see where NPO puts the list this year.
+function logLinks(html: string, pageUrl: string) {
+  if (!DRY_RUN) return;
+  const links = new Set(
+    [...html.matchAll(/(?:href|src)="([^"]*)"/gi)]
+      .map((m) => m[1])
+      .filter((href) => /top-?2000|chart|lijst|\.xlsx|\.csv|\.pdf|api/i.test(href)),
+  );
+  console.log(`${pageUrl}: ${links.size} relevant links:\n  ${[...links].slice(0, 60).join("\n  ")}`);
+  const nextData = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (nextData) {
+    try {
+      const data = JSON.parse(nextData[1]);
+      console.log(`${pageUrl}: __NEXT_DATA__ page=${data.page} pageProps keys=${Object.keys(data.props?.pageProps || {}).join(",")}`);
+    } catch {}
+  }
 }
 
 // Chart data embedded in an HTML page (Next.js __NEXT_DATA__ or other JSON script tags).
@@ -318,7 +352,10 @@ function entriesFromHtml(html: string): ListEntry[] {
 }
 
 function absoluteUrl(href: string, base: string): string {
-  return new URL(href.replace(/&amp;/g, "&"), base).toString();
+  href = href.replace(/&amp;/g, "&");
+  // SOURCE_URL can be a local file (for testing); resolve its links as files.
+  if (!/^https?:\/\//.test(base) && !/^https?:\/\//.test(href)) return path.resolve(path.dirname(base), href);
+  return new URL(href, base).toString();
 }
 
 // The list is announced in a news article ("Dit is de NPO Radio 2 Top 2000-lijst van <YEAR>")
@@ -328,6 +365,7 @@ async function findOnNpo(): Promise<{ source: string; entries: ListEntry[] } | n
   for (const page of NPO_PAGES) {
     try {
       const html = await fetchText(page);
+      logLinks(html, page);
       for (const m of html.matchAll(/href="([^"]*top-?2000-lijst-van-(\d{4})[^"]*)"/gi)) {
         if (parseInt(m[2], 10) === YEAR) articleUrls.add(absoluteUrl(m[1], page));
       }
@@ -340,13 +378,8 @@ async function findOnNpo(): Promise<{ source: string; entries: ListEntry[] } | n
   for (const article of articleUrls) {
     try {
       const html = await fetchText(article);
-      const downloads = [...html.matchAll(/href="([^"]+\.(?:xlsx|csv)(?:\?[^"]*)?)"/gi)].map((m) => absoluteUrl(m[1], article));
-      console.log(`${article}: downloads found: ${downloads.join(", ") || "none"}`);
-      for (const download of downloads) {
-        const entries = await entriesFromSource(download);
-        if (entries.length >= 1900) return { source: download, entries };
-      }
-      const entries = entriesFromHtml(html);
+      logLinks(html, article);
+      const entries = await entriesFromPage(html, article);
       if (entries.length >= 1900) return { source: article, entries };
     } catch (error) {
       console.log(`Could not read ${article}: ${(error as Error).message}`);
