@@ -11,6 +11,11 @@ WebBrowser.maybeCompleteAuthSession();
 const OAUTH_BASE_URL = "https://spotify-oauth.wouter-van-der-harst.workers.dev";
 
 function getOAuthRedirectUrl(): string {
+  if (Platform.OS === "web") {
+    // Static oauth-callback page from public/, served next to the web app.
+    const baseUrl = process.env.EXPO_BASE_URL ?? "";
+    return `${window.location.origin}${baseUrl}/oauth-callback.html`;
+  }
   const apiUrl = getApiUrl();
   const url = new URL(apiUrl);
   url.port = "";

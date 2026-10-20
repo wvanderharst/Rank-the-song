@@ -28,7 +28,8 @@ import { Spacing, BorderRadius, Colors } from "@/constants/theme";
 import { useSettings } from "@/context/SettingsContext";
 import { useSpotifyAuth } from "@/context/SpotifyAuthContext";
 import { Song } from "@shared/songs-data";
-import { getApiUrl } from "@/lib/query-client";
+import { pickRandomSong } from "@/lib/songs";
+import { AdBanner } from "@/components/AdBanner";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLAYER_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
@@ -420,7 +421,7 @@ export default function GameScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const { theme, isDark } = useTheme();
-  const { playMode, addToHistory, songHistory } = useSettings();
+  const { playMode, addToHistory, songHistory, selectedSongList } = useSettings();
   const playerRef = useRef<YoutubeIframeRef>(null);
 
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
@@ -430,40 +431,12 @@ export default function GameScreen() {
   const [isLoadingSong, setIsLoadingSong] = useState(false);
 
   const fetchRandomSong = useCallback(async (excludeCurrentId?: number): Promise<Song | null> => {
-    try {
-      const countUrl = new URL("/api/songs/count", getApiUrl());
-      const countResponse = await fetch(countUrl.toString());
-      const { count: totalSongs } = await countResponse.json();
-      
-      const historyIds = new Set(songHistory.map(s => s.id));
-      if (excludeCurrentId !== undefined) {
-        historyIds.add(excludeCurrentId);
-      }
-      const shouldAvoidDuplicates = historyIds.size < totalSongs * 0.7;
-      
-      const maxRetries = shouldAvoidDuplicates ? 10 : 1;
-      
-      for (let i = 0; i < maxRetries; i++) {
-        const url = new URL("/api/songs/random", getApiUrl());
-        const response = await fetch(url.toString());
-        if (!response.ok) return null;
-        
-        const song = await response.json();
-        
-        if (!shouldAvoidDuplicates || !historyIds.has(song.id)) {
-          return song;
-        }
-      }
-      
-      const url = new URL("/api/songs/random", getApiUrl());
-      const response = await fetch(url.toString());
-      if (!response.ok) return null;
-      return await response.json();
-    } catch (error) {
-      console.error("Failed to fetch random song:", error);
-      return null;
+    const historyIds = new Set(songHistory.map(s => s.id));
+    if (excludeCurrentId !== undefined) {
+      historyIds.add(excludeCurrentId);
     }
-  }, [songHistory]);
+    return pickRandomSong(selectedSongList, historyIds);
+  }, [songHistory, selectedSongList]);
 
   const onPlayerReady = useCallback(() => {
     setIsPlayerReady(true);
@@ -722,6 +695,7 @@ export default function GameScreen() {
           disabled={!currentSong}
         />
       </View>
+      <AdBanner />
     </ThemedView>
   );
 }
