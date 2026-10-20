@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from "react";
+import { Platform } from "react-native";
 
+// "spotify": playback control after Spotify login (phone app only; Spotify only
+// allows accounts added in its developer dashboard).
 // "preview": Spotify's embed player, no login needed (website only).
 export type PlayMode = "youtube" | "spotify" | "preview";
 
@@ -47,7 +50,7 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [playMode, setPlayMode] = useState<PlayMode>("spotify");
+  const [playMode, setPlayMode] = useState<PlayMode>(Platform.OS === "web" ? "preview" : "spotify");
   const [gameMode, setGameMode] = useState<GameMode>("simple");
   const [orderingMode, setOrderingMode] = useState<OrderingMode>("ranking");
   const [chainDifficulty, setChainDifficulty] = useState<ChainDifficulty>("hard");
