@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
-import YoutubePlayer, { YoutubeIframeRef } from "react-native-youtube-iframe";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -23,7 +22,6 @@ import Animated, {
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { YouTubePlayerWeb } from "@/components/YouTubePlayerWeb";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Colors } from "@/constants/theme";
 import { useSettings } from "@/context/SettingsContext";
@@ -33,6 +31,7 @@ import { getRandomSong as getRandomSongFromList, getSongCount } from "@/lib/song
 import { useAdManager } from "@/hooks/useAds";
 import { AdBanner } from "@/components/AdBanner";
 import { SpotifyPreviewPlayer } from "@/components/SpotifyPreviewPlayer";
+import { YouTubeSongPlayer } from "@/components/YouTubeSongPlayer";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLAYER_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
@@ -434,12 +433,9 @@ export default function GameScreen() {
   const { theme, isDark } = useTheme();
   const { playMode, addToHistory, songHistory } = useSettings();
   const { onSongLoaded, tryShowAd } = useAdManager();
-  const playerRef = useRef<YoutubeIframeRef>(null);
 
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
-  const [isAudioOnly, setIsAudioOnly] = useState(false);
-  const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [isLoadingSong, setIsLoadingSong] = useState(false);
 
   const pickRandomSong = useCallback((excludeCurrentId?: number): Song | null => {
@@ -453,20 +449,6 @@ export default function GameScreen() {
     
     return getRandomSongFromList(shouldAvoidDuplicates ? historyIds : undefined);
   }, [songHistory]);
-
-  const onPlayerReady = useCallback(() => {
-    setIsPlayerReady(true);
-  }, []);
-
-  const onPlayerStateChange = useCallback((state: string) => {
-    if (state === 'ended') {
-      const newSong = pickRandomSong(currentSong?.id);
-      if (newSong) {
-        setCurrentSong(newSong);
-        setIsRevealed(false);
-      }
-    }
-  }, [pickRandomSong, currentSong?.id]);
 
   const handleNextSong = useCallback(() => {
     const newSong = pickRandomSong(currentSong?.id);
@@ -490,13 +472,6 @@ export default function GameScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    if (currentSong?.youtubeId && isPlayerReady && playerRef.current) {
-      setTimeout(() => {
-        playerRef.current?.seekTo(0, true);
-      }, 300);
-    }
-  }, [currentSong?.youtubeId, isPlayerReady]);
 
   useEffect(() => {
     if (currentSong) {
@@ -525,111 +500,7 @@ export default function GameScreen() {
       >
       <View style={styles.playerContainer}>
         {playMode === "youtube" ? (
-          <View style={styles.youtubeSection}>
-            <View style={styles.videoAudioToggle}>
-              <Pressable
-                style={[
-                  styles.toggleOption,
-                  {
-                    backgroundColor: !isAudioOnly ? theme.primary : "transparent",
-                    borderColor: theme.primary,
-                  },
-                ]}
-                onPress={() => setIsAudioOnly(false)}
-              >
-                <ThemedText
-                  style={[
-                    styles.toggleLabel,
-                    { color: !isAudioOnly ? "#FFFFFF" : theme.primary },
-                  ]}
-                >
-                  Video
-                </ThemedText>
-              </Pressable>
-              <Pressable
-                style={[
-                  styles.toggleOption,
-                  {
-                    backgroundColor: isAudioOnly ? theme.primary : "transparent",
-                    borderColor: theme.primary,
-                  },
-                ]}
-                onPress={() => setIsAudioOnly(true)}
-              >
-                <ThemedText
-                  style={[
-                    styles.toggleLabel,
-                    { color: isAudioOnly ? "#FFFFFF" : theme.primary },
-                  ]}
-                >
-                  Audio
-                </ThemedText>
-              </Pressable>
-            </View>
-            <View style={[styles.playerWrapper, isAudioOnly && styles.playerHidden]}>
-              {Platform.OS === 'web' ? (
-                <YouTubePlayerWeb
-                  videoId={currentSong?.youtubeId || ''}
-                  width={isAudioOnly ? 1 : PLAYER_WIDTH}
-                  height={isAudioOnly ? 1 : PLAYER_HEIGHT}
-                  play={true}
-                  mute={true}
-                  onReady={onPlayerReady}
-                  onChangeState={onPlayerStateChange}
-                />
-              ) : currentSong ? (
-                <YoutubePlayer
-                  ref={playerRef}
-                  play={true}
-                  mute={true}
-                  onReady={onPlayerReady}
-                  onChangeState={onPlayerStateChange}
-                  height={isAudioOnly ? 1 : PLAYER_HEIGHT}
-                  width={isAudioOnly ? 1 : PLAYER_WIDTH}
-                  videoId={currentSong.youtubeId}
-                  initialPlayerParams={{
-                    controls: true,
-                    modestbranding: true,
-                    rel: false,
-                    preventFullScreen: true,
-                    playerLang: "en",
-                    loop: false,
-                    mute: true,
-                  }}
-                  webViewProps={{
-                    allowsInlineMediaPlayback: true,
-                    mediaPlaybackRequiresUserAction: false,
-                  }}
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.playerPlaceholder,
-                    { backgroundColor: theme.backgroundDefault },
-                  ]}
-                >
-                  <ActivityIndicator size="large" color={theme.primary} />
-                </View>
-              )}
-              {!currentSong && Platform.OS === 'web' ? (
-                <View style={[styles.playerOverlay, { backgroundColor: theme.backgroundDefault }]}>
-                  <ActivityIndicator size="large" color={theme.primary} />
-                </View>
-              ) : null}
-            </View>
-            {isAudioOnly ? (
-              <View style={[styles.audioOnlyIndicator, { backgroundColor: theme.backgroundDefault }]}>
-                <View style={[styles.muteButton, { backgroundColor: theme.primary }]}>
-                  <ThemedText style={{ color: "#FFFFFF", fontSize: 24, fontWeight: "700" }}>
-                    Audio
-                  </ThemedText>
-                </View>
-                <ThemedText style={[styles.audioOnlyText, { color: theme.textSecondary }]}>
-                  Audio playing (muted for autoplay)
-                </ThemedText>
-              </View>
-            ) : null}
-          </View>
+          <YouTubeSongPlayer videoId={currentSong?.youtubeId} onEnded={handleNextSong} />
         ) : playMode === "spotify" && currentSong ? (
           <SpotifyPlayer
             spotifyUri={currentSong.spotifyUri}
@@ -715,34 +586,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: Spacing.xl,
   },
-  youtubeSection: {
-    alignItems: "center",
-    width: "100%",
-  },
-  videoAudioToggle: {
-    flexDirection: "row",
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  toggleOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 2,
-  },
-  toggleLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  playerWrapper: {
-    borderRadius: BorderRadius.sm,
-    overflow: "hidden",
-    position: "relative",
-  },
   startPlayingOverlay: {
     position: "absolute",
     top: 0,
@@ -771,42 +614,7 @@ const styles = StyleSheet.create({
   startPlayingSubtext: {
     fontSize: 14,
   },
-  playerHidden: {
-    height: 1,
-    width: 1,
-    opacity: 0,
-    position: "absolute",
-  },
-  audioOnlyIndicator: {
-    width: PLAYER_WIDTH,
-    height: PLAYER_HEIGHT,
-    borderRadius: BorderRadius.sm,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: Spacing.md,
-  },
-  audioOnlyText: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  muteButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   playerPlaceholder: {
-    width: PLAYER_WIDTH,
-    height: PLAYER_HEIGHT,
-    borderRadius: BorderRadius.sm,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  playerOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
     width: PLAYER_WIDTH,
     height: PLAYER_HEIGHT,
     borderRadius: BorderRadius.sm,

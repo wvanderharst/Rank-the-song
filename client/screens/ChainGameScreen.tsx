@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
-import YoutubePlayer, { YoutubeIframeRef } from "react-native-youtube-iframe";
 import Animated, {
   FadeIn,
   FadeOut,
@@ -25,7 +24,6 @@ import Animated, {
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { YouTubePlayerWeb } from "@/components/YouTubePlayerWeb";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius, Colors } from "@/constants/theme";
 import { useSettings, GameMode, OrderingMode, ChainDifficulty } from "@/context/SettingsContext";
@@ -35,10 +33,10 @@ import { getRandomSong as getRandomSongFromList, getSongCount } from "@/lib/song
 import { useAdManager } from "@/hooks/useAds";
 import { AdBanner } from "@/components/AdBanner";
 import { SpotifyPreviewPlayer } from "@/components/SpotifyPreviewPlayer";
+import { YouTubeSongPlayer } from "@/components/YouTubeSongPlayer";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLAYER_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
-const PLAYER_HEIGHT = (PLAYER_WIDTH * 9) / 16 * 0.6;
 
 const springConfig: WithSpringConfig = {
   damping: 15,
@@ -482,7 +480,6 @@ export default function ChainGameScreen() {
   const { theme } = useTheme();
   const { playMode, gameMode, orderingMode, chainDifficulty, teamCount } = useSettings();
   const { onSongLoaded, tryShowAd } = useAdManager();
-  const playerRef = useRef<YoutubeIframeRef>(null);
 
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -774,33 +771,7 @@ export default function ChainGameScreen() {
 
       <View style={styles.playerContainer}>
         {playMode === "youtube" && currentSong ? (
-          <View style={styles.compactYoutube}>
-            {Platform.OS === 'web' ? (
-              <YouTubePlayerWeb
-                videoId={currentSong.youtubeId}
-                width={PLAYER_WIDTH}
-                height={PLAYER_HEIGHT}
-                play={true}
-                mute={true}
-              />
-            ) : (
-              <YoutubePlayer
-                ref={playerRef}
-                play={true}
-                mute={true}
-                height={PLAYER_HEIGHT}
-                width={PLAYER_WIDTH}
-                videoId={currentSong.youtubeId}
-                initialPlayerParams={{
-                  controls: true,
-                  modestbranding: true,
-                  rel: false,
-                  preventFullScreen: true,
-                  mute: true,
-                }}
-              />
-            )}
-          </View>
+          <YouTubeSongPlayer videoId={currentSong.youtubeId} />
         ) : playMode === "spotify" && currentSong ? (
           <CompactSpotifyPlayer spotifyUri={currentSong.spotifyUri} />
         ) : playMode === "preview" && currentSong ? (
@@ -926,10 +897,6 @@ const styles = StyleSheet.create({
   playerContainer: {
     alignItems: "center",
     marginBottom: Spacing.md,
-  },
-  compactYoutube: {
-    borderRadius: BorderRadius.sm,
-    overflow: "hidden",
   },
   compactPlayer: {
     width: PLAYER_WIDTH,
