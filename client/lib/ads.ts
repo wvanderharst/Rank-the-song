@@ -1,7 +1,12 @@
 import { Platform } from "react-native";
 
-const AD_UNIT_ID = "ca-app-pub-1303789001048468/1137972134";
+// Real interstitial ad unit per platform. iOS needs its own app + ad unit in
+// AdMob; until IOS_AD_UNIT_ID is filled in, iOS release builds show no ads.
+const ANDROID_AD_UNIT_ID = "ca-app-pub-1303789001048468/1137972134";
+const IOS_AD_UNIT_ID = "";
+const AD_UNIT_ID = Platform.OS === "ios" ? IOS_AD_UNIT_ID : ANDROID_AD_UNIT_ID;
 const TEST_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712";
+const RETRY_AFTER_ERROR_MS = 60 * 1000;
 
 const SONGS_BETWEEN_ADS = 4;
 const MIN_AD_INTERVAL_MS = 4 * 60 * 1000;
@@ -56,6 +61,10 @@ async function preloadInterstitial(): Promise<void> {
   if (!InterstitialAdClass) return;
 
   const adUnitId = __DEV__ ? (TestIds?.INTERSTITIAL || TEST_AD_UNIT_ID) : AD_UNIT_ID;
+  if (!adUnitId) {
+    console.log(`No AdMob ad unit configured for ${Platform.OS}`);
+    return;
+  }
 
   try {
     interstitialAd = InterstitialAdClass.createForAdRequest(adUnitId, {
@@ -75,6 +84,8 @@ async function preloadInterstitial(): Promise<void> {
     interstitialAd.addAdEventListener(AdEventType.ERROR, (error: any) => {
       console.log("Interstitial ad error:", error);
       adLoaded = false;
+      // Usually "no fill"; try again later instead of waiting for the next show.
+      setTimeout(preloadInterstitial, RETRY_AFTER_ERROR_MS);
     });
 
     interstitialAd.load();

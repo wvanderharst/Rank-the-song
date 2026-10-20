@@ -55,7 +55,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [songHistory, setSongHistory] = useState<PlayedSong[]>([]);
   const [adsDisabled, setAdsDisabled] = useState<boolean>(false);
   const [songsSinceLastAd, setSongsSinceLastAd] = useState<number>(0);
-  const [lastAdTimestamp, setLastAdTimestamp] = useState<number>(Date.now());
+  const [lastAdTimestamp, setLastAdTimestamp] = useState<number>(0);
 
   const addToHistory = useCallback((song: { id: number; placement: number; artist: string; title: string; year: number }) => {
     setSongHistory(prev => {

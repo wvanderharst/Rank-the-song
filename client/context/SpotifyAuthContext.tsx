@@ -74,7 +74,8 @@ export function SpotifyAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadTokens().then((savedTokens) => {
-      if (savedTokens && savedTokens.expiresAt > Date.now()) {
+      // Expired tokens are kept when they can be renewed with the refresh token.
+      if (savedTokens && (savedTokens.expiresAt > Date.now() || savedTokens.refreshToken)) {
         setTokens(savedTokens);
       }
       setIsLoading(false);
@@ -109,6 +110,9 @@ export function SpotifyAuthProvider({ children }: { children: ReactNode }) {
         
         await saveTokens(newTokens);
         setTokens(newTokens);
+        if (pendingHandshakeRef.current === handshakeId) {
+          pendingHandshakeRef.current = null;
+        }
         console.log("[Spotify Auth] Tokens saved successfully!");
         return true;
       }
@@ -123,40 +127,56 @@ export function SpotifyAuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshTokens = useCallback(async (refreshToken: string): Promise<SpotifyTokens | null> => {
+    try {
+      const response = await fetch(`${OAUTH_BASE_URL}/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+
+      if (!response.ok) {
+        console.log(`[Spotify Auth] Token refresh failed: ${response.status}`);
+        return null;
+      }
+
+      const data = await response.json();
+      if (!data.access_token) return null;
+
+      const newTokens: SpotifyTokens = {
+        accessToken: data.access_token,
+        // Spotify only sometimes rotates the refresh token.
+        refreshToken: data.refresh_token || refreshToken,
+        expiresAt: Date.now() + (data.expires_in || 3600) * 1000,
+      };
+
+      await saveTokens(newTokens);
+      setTokens(newTokens);
+      return newTokens;
+    } catch (error) {
+      console.error("[Spotify Auth] Failed to refresh tokens:", error);
+      return null;
+    }
+  }, []);
+
+  // "Refresh Connection": finishes a login that is still pending, or renews the saved tokens.
   const fetchTokensFromServer = useCallback(async (): Promise<boolean> => {
+    if (pendingHandshakeRef.current) {
+      return fetchTokensByHandshake(pendingHandshakeRef.current);
+    }
+
+    const savedTokens = await loadTokens();
+    if (!savedTokens?.refreshToken) {
+      return false;
+    }
+
     try {
       setIsLoading(true);
-      const response = await fetch(`${OAUTH_BASE_URL}/me`, {
-        credentials: "include",
-      });
-      
-      if (!response.ok) {
-        console.log("No tokens available from server (user not authenticated)");
-        return false;
-      }
-      
-      const data = await response.json();
-      
-      if (data.access_token) {
-        const newTokens: SpotifyTokens = {
-          accessToken: data.access_token,
-          refreshToken: data.refresh_token || "",
-          expiresAt: Date.now() + (data.expires_in || 3600) * 1000,
-        };
-        
-        await saveTokens(newTokens);
-        setTokens(newTokens);
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error("Failed to fetch tokens from server:", error);
-      return false;
+      return (await refreshTokens(savedTokens.refreshToken)) !== null;
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [fetchTokensByHandshake, refreshTokens]);
 
   useEffect(() => {
     if (Platform.OS === "web") return;
@@ -194,90 +214,60 @@ export function SpotifyAuthProvider({ children }: { children: ReactNode }) {
       return tokens.accessToken;
     }
 
-    const success = await fetchTokensFromServer();
-    if (success) {
-      const refreshedTokens = await loadTokens();
-      return refreshedTokens?.accessToken || null;
+    const refreshed = tokens.refreshToken ? await refreshTokens(tokens.refreshToken) : null;
+    if (refreshed) {
+      return refreshed.accessToken;
     }
-    
+
+    // Could not renew: sign out so the app asks to connect Spotify again.
+    await clearTokens();
+    setTokens(null);
     return null;
-  }, [tokens, fetchTokensFromServer]);
+  }, [tokens, refreshTokens]);
 
   const login = useCallback(async () => {
     console.log(`[Spotify Auth] Starting login, Platform: ${Platform.OS}`);
-    
+
+    const handshakeId = await generateHandshakeId();
+    pendingHandshakeRef.current = handshakeId;
+
+    const loginUrl = `${OAUTH_BASE_URL}/login?handshakeId=${handshakeId}`;
+    console.log(`[Spotify Auth] Opening login: ${loginUrl}`);
+
+    let popup: Window | null = null;
     if (Platform.OS === "web") {
-      const handshakeId = await generateHandshakeId();
-      console.log(`[Spotify Auth] Generated handshake ID for web: ${handshakeId}`);
-      pendingHandshakeRef.current = handshakeId;
-      
-      const loginUrl = `${OAUTH_BASE_URL}/login?handshakeId=${handshakeId}`;
-      
-      console.log(`[Spotify Auth] Opening popup: ${loginUrl}`);
-      
-      const popup = window.open(loginUrl, "_blank", "width=500,height=700");
-      
-      const pollInterval = setInterval(async () => {
-        if (popup?.closed) {
-          console.log("[Spotify Auth] Popup closed, checking for tokens...");
-          clearInterval(pollInterval);
-          
-          if (pendingHandshakeRef.current) {
-            const success = await fetchTokensByHandshake(pendingHandshakeRef.current);
-            console.log(`[Spotify Auth] Token fetch result: ${success}`);
-            pendingHandshakeRef.current = null;
-          }
-        }
-      }, 500);
-      
-      setTimeout(() => {
-        clearInterval(pollInterval);
-        pendingHandshakeRef.current = null;
-      }, 300000);
+      popup = window.open(loginUrl, "_blank", "width=500,height=700");
     } else {
-      const handshakeId = await generateHandshakeId();
-      console.log(`[Spotify Auth] Generated handshake ID: ${handshakeId}`);
-      pendingHandshakeRef.current = handshakeId;
-      
-      const loginUrl = `${OAUTH_BASE_URL}/login?handshakeId=${handshakeId}`;
-      
-      console.log(`[Spotify Auth] Opening browser: ${loginUrl}`);
-      
       await Linking.openURL(loginUrl);
-      
-      console.log(`[Spotify Auth] Browser opened, starting token polling...`);
-      
-      let attempts = 0;
-      const maxAttempts = 60;
-      
-      const pollForTokens = async (): Promise<boolean> => {
-        while (attempts < maxAttempts) {
-          attempts++;
-          console.log(`[Spotify Auth] Polling attempt ${attempts}/${maxAttempts}`);
-          
-          try {
-            const success = await fetchTokensByHandshake(handshakeId);
-            if (success) {
-              console.log(`[Spotify Auth] Tokens retrieved successfully!`);
-              return true;
-            }
-          } catch (error) {
-            console.log(`[Spotify Auth] Poll attempt failed:`, error);
-          }
-          
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-        
-        console.log(`[Spotify Auth] Polling timed out after ${maxAttempts} attempts`);
-        return false;
-      };
-      
-      await pollForTokens();
+    }
+
+    // The login service keeps the tokens under the handshake id until we fetch them.
+    // Poll for them instead of waiting for the popup to close: Spotify's login page
+    // can cut the link to the popup, so popup.closed is not reliable.
+    const maxAttempts = 150;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Stop when another login was started or this one already finished.
+      if (pendingHandshakeRef.current !== handshakeId) return;
+
+      if (await fetchTokensByHandshake(handshakeId)) {
+        console.log(`[Spotify Auth] Tokens retrieved successfully!`);
+        try {
+          popup?.close();
+        } catch {}
+        return;
+      }
+    }
+
+    console.log(`[Spotify Auth] Login timed out after ${maxAttempts} attempts`);
+    if (pendingHandshakeRef.current === handshakeId) {
       pendingHandshakeRef.current = null;
     }
   }, [fetchTokensByHandshake]);
 
   const logout = useCallback(async () => {
+    pendingHandshakeRef.current = null;
     await clearTokens();
     setTokens(null);
   }, []);

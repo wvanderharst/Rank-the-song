@@ -224,7 +224,7 @@ function SpotifyLoginSection() {
           ) : null}
           {Platform.OS === "web" ? (
             <ThemedText style={[styles.sectionText, { color: theme.textSecondary, fontSize: 12, marginTop: Spacing.xs }]}>
-              After logging in via the popup, tap "Refresh Connection" to complete setup.
+              The app connects automatically after you log in. If it doesn't, tap "Refresh Connection".
             </ThemedText>
           ) : null}
         </>

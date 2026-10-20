@@ -33,6 +33,7 @@ import { useSpotifyAuth } from "@/context/SpotifyAuthContext";
 import { Song } from "@shared/songs-data";
 import { getRandomSong as getRandomSongFromList, getSongCount } from "@/lib/song-manager";
 import { useAdManager } from "@/hooks/useAds";
+import { AdBanner } from "@/components/AdBanner";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLAYER_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
@@ -742,15 +743,16 @@ export default function ChainGameScreen() {
   }
 
   return (
-    <ThemedView
-      style={[
-        styles.container,
-        {
-          paddingTop: headerHeight + Spacing.md,
-          paddingBottom: insets.bottom + Spacing.md,
-        },
-      ]}
-    >
+    <ThemedView style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop: headerHeight + Spacing.md,
+            paddingBottom: insets.bottom + Spacing.md,
+          },
+        ]}
+      >
       {gameMode === "team" ? (
         <TeamIndicator teams={teams} currentTeam={currentTeamIndex} />
       ) : null}
@@ -890,13 +892,18 @@ export default function ChainGameScreen() {
           />
         ) : null}
       </View>
+      <AdBanner />
+      </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
+  },
+  container: {
+    flexGrow: 1,
     paddingHorizontal: Spacing.lg,
   },
   scoreRow: {
@@ -1002,6 +1009,7 @@ const styles = StyleSheet.create({
   },
   chainContainer: {
     flex: 1,
+    minHeight: 280,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.md,
