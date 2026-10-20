@@ -240,6 +240,8 @@ function PlayModeToggle() {
   const options: { value: PlayMode; label: string }[] = [
     { value: "youtube", label: "YouTube" },
     { value: "spotify", label: "Spotify" },
+    // The preview player is a Spotify web embed, so it is offered on the website only.
+    ...(Platform.OS === "web" ? [{ value: "preview" as const, label: "Preview" }] : []),
   ];
 
   return (
@@ -582,7 +584,7 @@ export default function SettingsScreen() {
             <ThemedText style={styles.sectionTitle}>Play Mode</ThemedText>
           </View>
           <ThemedText style={[styles.sectionText, { color: theme.textSecondary }]}>
-            Choose how you want to play songs. YouTube shows music videos, Spotify opens in a web player.
+            Choose how you want to play songs. YouTube shows music videos, Spotify opens in a web player.{Platform.OS === "web" ? " Preview plays Spotify\u2019s 30-second preview without logging in." : ""}
           </ThemedText>
           <PlayModeToggle />
         </View>

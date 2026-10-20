@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from "react";
 
-export type PlayMode = "youtube" | "spotify";
+// "preview": Spotify's embed player, no login needed (website only).
+export type PlayMode = "youtube" | "spotify" | "preview";
 
 export type GameMode = "simple" | "singleplayer" | "team";
 

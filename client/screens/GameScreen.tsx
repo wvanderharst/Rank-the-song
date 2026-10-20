@@ -32,6 +32,7 @@ import { Song } from "@shared/songs-data";
 import { getRandomSong as getRandomSongFromList, getSongCount } from "@/lib/song-manager";
 import { useAdManager } from "@/hooks/useAds";
 import { AdBanner } from "@/components/AdBanner";
+import { SpotifyPreviewPlayer } from "@/components/SpotifyPreviewPlayer";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLAYER_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
@@ -636,6 +637,8 @@ export default function GameScreen() {
             title={currentSong.title}
             onSongChange={handleNextSong}
           />
+        ) : playMode === "preview" && currentSong ? (
+          <SpotifyPreviewPlayer spotifyUri={currentSong.spotifyUri} />
         ) : (
           <View
             style={[

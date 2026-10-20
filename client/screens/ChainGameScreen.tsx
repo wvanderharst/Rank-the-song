@@ -34,6 +34,7 @@ import { Song } from "@shared/songs-data";
 import { getRandomSong as getRandomSongFromList, getSongCount } from "@/lib/song-manager";
 import { useAdManager } from "@/hooks/useAds";
 import { AdBanner } from "@/components/AdBanner";
+import { SpotifyPreviewPlayer } from "@/components/SpotifyPreviewPlayer";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLAYER_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
@@ -802,6 +803,8 @@ export default function ChainGameScreen() {
           </View>
         ) : playMode === "spotify" && currentSong ? (
           <CompactSpotifyPlayer spotifyUri={currentSong.spotifyUri} />
+        ) : playMode === "preview" && currentSong ? (
+          <SpotifyPreviewPlayer spotifyUri={currentSong.spotifyUri} compact />
         ) : (
           <View style={[styles.compactPlayer, { backgroundColor: theme.backgroundDefault }]}>
             <ActivityIndicator size="small" color={theme.primary} />
