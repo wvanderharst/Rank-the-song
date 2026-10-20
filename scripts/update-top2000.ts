@@ -56,9 +56,12 @@ const DRY_RUN = process.env.DRY_RUN === "true";
 const YOUTUBE_SEARCH_LIMIT = DRY_RUN ? 2 : parseInt(process.env.YOUTUBE_SEARCH_LIMIT || "90", 10);
 const SPOTIFY_SEARCH_LIMIT = DRY_RUN ? 5 : Infinity;
 
+// Pages that link the article announcing the list (and may show the chart).
 const NPO_PAGES = [
   "https://www.nporadio2.nl/top2000",
   "https://www.nporadio2.nl/nieuws/top2000",
+  "https://www.nporadio2.nl/nieuws/top2000?page=2",
+  "https://www.nporadio2.nl/nieuws/top2000?page=3",
 ];
 // Other sites that publish the full list; used when NPO's own pages do not give it.
 const BACKUP_PAGES = [
