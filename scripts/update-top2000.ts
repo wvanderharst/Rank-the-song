@@ -63,9 +63,23 @@ const NPO_PAGES = [
 // Other sites that publish the full list; used when NPO's own pages do not give it.
 const BACKUP_PAGES = [
   `https://top2000.info/nl/year/${YEAR}`,
-  `https://www.top2000nl.com/lijst/top-2000-lijst-${YEAR}/`,
   "https://www.top2000nl.com/download-top-2000-lijst/",
 ];
+
+// Address patterns for the next page of a list shown 100 songs at a time.
+const NEXT_PAGE_PATTERNS: ((url: URL, page: number, from: number) => string)[] = [
+  (url, page) => withParam(url, "page", page),
+  (url, page) => withParam(url, "p", page),
+  (url, _page, from) => withParam(url, "from", from),
+  (url, _page, from) => withParam(url, "offset", from - 1),
+  (url, page) => `${url.origin}${url.pathname.replace(/\/$/, "")}/${page}${url.search}`,
+];
+
+function withParam(url: URL, name: string, value: number): string {
+  const next = new URL(url);
+  next.searchParams.set(name, String(value));
+  return next.toString();
+}
 const USER_AGENT = "Mozilla/5.0 (compatible; RankTheSongBot/1.0; +https://github.com/wvanderharst/Rank-the-song)";
 
 const summary: string[] = [];
@@ -314,12 +328,21 @@ function urlsInPage(html: string): string[] {
   return [...urls];
 }
 
+// Pages can link the files of several editions (e.g. ".../TOP-2000-2024.xlsx"): skip
+// files whose name holds another year. Files without a year in the name are kept.
+function isForThisYear(url: string): boolean {
+  const name = url.split("?")[0].split("/").pop() || "";
+  const years = (name.match(/(?:19|20)\d{2}/g) || []).map(Number);
+  return years.length === 0 || years.includes(YEAR);
+}
+
 // A web page with the list: an Excel/CSV download link, or chart data embedded in the page.
 async function entriesFromPage(html: string, pageUrl: string): Promise<ListEntry[]> {
   logLinks(html, pageUrl);
   const downloads = [...new Set(
     urlsInPage(html)
       .filter((url) => /\.(xlsx|xls|csv)(\?|#|$)/i.test(url))
+      .filter((url) => isForThisYear(url))
       .map((url) => absoluteUrl(url, pageUrl)),
   )];
   console.log(`${pageUrl}: downloads found: ${downloads.join(", ") || "none"}`);
@@ -345,7 +368,40 @@ async function entriesFromPage(html: string, pageUrl: string): Promise<ListEntry
     }
   }
   console.log(`${pageUrl}: ${fromJson.length} entries in page data, ${fromTables.length} in tables`);
-  return fromTables.length > fromJson.length ? fromTables : fromJson;
+  const entries = fromTables.length > fromJson.length ? fromTables : fromJson;
+  return entries.length >= 50 && entries.length < 1900 ? addNextPages(pageUrl, entries) : entries;
+}
+
+// Lists shown in pages (e.g. top2000.info shows 100 songs per page): find the
+// address pattern whose second page continues the positions, then follow it.
+async function addNextPages(pageUrl: string, firstPage: ListEntry[]): Promise<ListEntry[]> {
+  if (!/^https?:\/\//.test(pageUrl)) return firstPage;
+  const url = new URL(pageUrl);
+  const all = new Map(firstPage.map((e) => [e.placement, e]));
+  const pageSize = firstPage.length;
+
+  for (const pattern of NEXT_PAGE_PATTERNS) {
+    let found = 0;
+    for (let page = 2; all.size < 2000 && page <= Math.ceil(2000 / pageSize) + 1; page++) {
+      const from = Math.max(...all.keys()) + 1;
+      const next = pattern(url, page, from);
+      let entries: ListEntry[] = [];
+      try {
+        const html = await fetchText(next);
+        const rows = rowsFromHtmlTables(html);
+        entries = rows.length > 0 ? entriesFromRows(rows) : entriesFromHtml(html);
+      } catch {}
+      const added = entries.filter((e) => !all.has(e.placement));
+      if (added.length === 0) break;
+      added.forEach((e) => all.set(e.placement, e));
+      found += added.length;
+    }
+    if (found > 0) {
+      console.log(`${pageUrl}: ${all.size} entries after following pages (${pattern(url, 2, pageSize + 1)})`);
+      break;
+    }
+  }
+  return [...all.values()];
 }
 
 // Dry runs list the links a page has, to see where NPO puts the list this year.
