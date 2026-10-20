@@ -6,14 +6,6 @@ import * as Crypto from "expo-crypto";
 
 const OAUTH_BASE_URL = "https://spotify-oauth.wouter-van-der-harst.workers.dev";
 
-function getOAuthRedirectUrl(): string {
-  const apiUrl = getApiUrl();
-  const url = new URL(apiUrl);
-  url.port = "";
-  return `${url.href}oauth-callback`;
-}
-const APP_SCHEME = "top2000game";
-
 interface SpotifyTokens {
   accessToken: string;
   refreshToken: string;

@@ -23,16 +23,11 @@ export default function SongListScreen() {
   const { selectedSongList, setSelectedSongList } = useSettings();
 
   const handleSelectList = (listId: string) => {
-<<<<<<< HEAD
     const success = setCurrentList(listId);
     if (success) {
       setSelectedSongList(listId);
       navigation.goBack();
     }
-=======
-    setSelectedSongList(listId);
-    navigation.goBack();
->>>>>>> 1459cc205ec75c553597f6d7c5a21610b0c1052d
   };
 
   return (
@@ -92,10 +87,6 @@ export default function SongListScreen() {
                     {list.songCount} songs
                   </ThemedText>
                 </View>
-<<<<<<< HEAD
-=======
-
->>>>>>> 1459cc205ec75c553597f6d7c5a21610b0c1052d
               </Pressable>
             );
           })}
