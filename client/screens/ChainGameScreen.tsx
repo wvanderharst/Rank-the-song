@@ -33,7 +33,7 @@ import { getRandomSong as getRandomSongFromList, getSongCount } from "@/lib/song
 import { useAdManager } from "@/hooks/useAds";
 import { AdBanner } from "@/components/AdBanner";
 import { SpotifyPreviewPlayer } from "@/components/SpotifyPreviewPlayer";
-import { YouTubeSongPlayer } from "@/components/YouTubeSongPlayer";
+import { YouTubeSongPlayer, YouTubeAudioModePlayer, useYouTubeSong } from "@/components/YouTubeSongPlayer";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLAYER_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
@@ -492,6 +492,7 @@ export default function ChainGameScreen() {
   const { theme } = useTheme();
   const { playMode, gameMode, orderingMode, chainDifficulty, teamCount } = useSettings();
   const { onSongLoaded, tryShowAd } = useAdManager();
+  const youtubeSong = useYouTubeSong();
 
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -804,7 +805,7 @@ export default function ChainGameScreen() {
 
       <View style={styles.playerContainer}>
         {playMode === "youtube" && currentSong ? (
-          <YouTubeSongPlayer videoId={currentSong.youtubeId} />
+          <YouTubeSongPlayer videoId={currentSong.youtubeId} song={youtubeSong} />
         ) : playMode === "spotify" && currentSong ? (
           <CompactSpotifyPlayer spotifyUri={currentSong.spotifyUri} />
         ) : playMode === "preview" && currentSong ? (
@@ -901,6 +902,9 @@ export default function ChainGameScreen() {
         ) : null}
       </View>
       <AdBanner />
+      {playMode === "youtube" && currentSong ? (
+        <YouTubeAudioModePlayer videoId={currentSong.youtubeId} song={youtubeSong} />
+      ) : null}
       </ScrollView>
     </ThemedView>
   );

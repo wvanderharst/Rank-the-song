@@ -32,6 +32,7 @@ declare global {
 
 interface YTPlayer {
   loadVideoById: (videoId: string, startSeconds?: number) => void;
+  cueVideoById: (videoId: string, startSeconds?: number) => void;
   playVideo: () => void;
   pauseVideo: () => void;
   mute: () => void;
@@ -48,6 +49,8 @@ interface YouTubePlayerWebProps {
   height: number;
   play?: boolean;
   mute?: boolean;
+  // false: new videos are only cued, and start when `play` becomes true.
+  autoplay?: boolean;
   onReady?: () => void;
   onChangeState?: (state: string) => void;
 }
@@ -67,6 +70,7 @@ function YouTubePlayerWebComponent({
   height,
   play = true,
   mute = true,
+  autoplay = true,
   onReady,
   onChangeState,
 }: YouTubePlayerWebProps) {
@@ -75,6 +79,11 @@ function YouTubePlayerWebComponent({
   const isApiReady = useRef(false);
   const currentVideoId = useRef<string | null>(null);
   const isPlayerReady = useRef(false);
+  // Latest props for the player's ready event, which is bound when the player is created.
+  const playRef = useRef(play);
+  const muteRef = useRef(mute);
+  playRef.current = play;
+  muteRef.current = mute;
 
   const handleStateChange = useCallback(
     (event: { data: number }) => {
@@ -87,21 +96,25 @@ function YouTubePlayerWebComponent({
   const handlePlayerReady = useCallback(
     (event: { target: YTPlayer }) => {
       isPlayerReady.current = true;
-      if (mute) {
+      if (muteRef.current) {
         event.target.mute();
       }
-      if (play) {
+      if (playRef.current) {
         event.target.playVideo();
       }
       onReady?.();
     },
-    [mute, play, onReady]
+    [onReady]
   );
 
   const loadVideo = useCallback((id: string) => {
     if (!id || id === '') return;
     if (playerRef.current && isPlayerReady.current && id !== currentVideoId.current) {
       currentVideoId.current = id;
+      if (!autoplay) {
+        playerRef.current.cueVideoById(id, 0);
+        return;
+      }
       playerRef.current.loadVideoById(id, 0);
       setTimeout(() => {
         if (playerRef.current) {
@@ -109,7 +122,7 @@ function YouTubePlayerWebComponent({
         }
       }, 100);
     }
-  }, []);
+  }, [autoplay]);
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
@@ -174,8 +187,8 @@ function YouTubePlayerWebComponent({
           width,
           videoId,
           playerVars: {
-            autoplay: 1,
-            mute: 1,
+            autoplay: autoplay ? 1 : 0,
+            mute: mute ? 1 : 0,
             controls: 1,
             modestbranding: 1,
             rel: 0,
@@ -194,7 +207,7 @@ function YouTubePlayerWebComponent({
     };
 
     tryInitOrLoad();
-  }, [videoId, width, height, handlePlayerReady, handleStateChange, loadVideo]);
+  }, [videoId, width, height, autoplay, mute, handlePlayerReady, handleStateChange, loadVideo]);
 
   useEffect(() => {
     if (playerRef.current && isPlayerReady.current) {
