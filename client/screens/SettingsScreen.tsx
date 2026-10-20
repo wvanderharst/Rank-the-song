@@ -619,6 +619,9 @@ export default function SettingsScreen() {
           <ThemedText style={[styles.sectionText, { color: theme.textSecondary, marginTop: Spacing.md }]}>
             De YouTube-versie heeft soms problemen door de manier waarop video’s worden gekozen. De Spotify-versie is betrouwbaarder. De YouTube-versie heeft natuurlijk wel als voordeel dat je geen Spotify-account nodig hebt. Let op: als je de advertenties in de app verwijdert, blijven de advertenties in de YouTube-speler gewoon zichtbaar.
           </ThemedText>
+          <ThemedText style={[styles.sectionText, { color: theme.textSecondary, marginTop: Spacing.md }]}>
+            Door de regels die Spotify stelt aan het gebruik van hun API kan ik helaas niets meer doen voor volledige Spotify-ondersteuning. Spotify laat andere apps alleen volledig afspelen voor een klein aantal goedgekeurde accounts. Daarom speelt de Spotify-modus op de website een fragment van 30 seconden af.
+          </ThemedText>
         </View>
 
         <View
