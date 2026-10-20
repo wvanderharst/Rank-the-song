@@ -1,0 +1,12 @@
+{
+  "songLists": [
+    {
+      "folder": "top2000",
+      "files": ["top2025.csv"]
+    },
+    {
+      "folder": "hits",
+      "files": ["Nederland_top_50-2025.csv", "Wereld_top_50-2025.csv"]
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "id": "d57b48f3-9f6c-4cb7-974f-92f6de7de6cb",
+  "createdAt": "2025-12-20T10:14:38.512Z",
+  "runtimeVersion": "1.0.0",
+  "launchAsset": {
+    "key": "bundle-1766225678512-5651",
+    "contentType": "application/javascript",
+    "url": "https://0417d7c6-ea3b-4708-8c6b-9bf75617dc43-00-5eszscfylawu.picard.replit.dev/1766225678512-5651/_expo/static/js/ios/bundle.js"
+  },
+  "assets": [],
+  "metadata": {},
+  "extra": {
+    "eas": {
+      "projectId": "e3ec3313-2c6a-4891-9929-925f3ad9bb76"
+    },
+    "expoClient": {
+      "name": "Top 2000 Game",
+      "slug": "top-2000-game",
+      "version": "1.0.0",
+      "orientation": "portrait",
+      "icon": "./assets/images/icon.png",
+      "scheme": "top2000game",
+      "userInterfaceStyle": "automatic",
+      "newArchEnabled": true,
+      "ios": {
+        "supportsTablet": true,
+        "bundleIdentifier": "com.top2000game.app"
+      },
+      "android": {
+        "adaptiveIcon": {
+          "backgroundColor": "#FF6600",
+          "foregroundImage": "./assets/images/icon.png",
+          "foregroundImageUrl": "https://0417d7c6-ea3b-4708-8c6b-9bf75617dc43-00-5eszscfylawu.picard.replit.dev/assets/./assets/images/icon.png"
+        },
+        "edgeToEdgeEnabled": true,
+        "predictiveBackGestureEnabled": false,
+        "package": "com.top2000game.app"
+      },
+      "web": {
+        "output": "single",
+        "favicon": "./assets/images/favicon.png"
+      },
+      "plugins": [
+        [
+          "expo-splash-screen",
+          {
+            "image": "./assets/images/splash-icon.png",
+            "imageWidth": 200,
+            "resizeMode": "contain",
+            "backgroundColor": "#FF6600",
+            "dark": {
+              "backgroundColor": "#1A1A1A"
+            }
+          }
+        ],
+        "expo-web-browser"
+      ],
+      "experiments": {
+        "reactCompiler": true
+      },
+      "extra": {
+        "eas": {
+          "projectId": "e3ec3313-2c6a-4891-9929-925f3ad9bb76"
+        }
+      },
+      "owner": "wvanderharst",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      },
+      "updates": {
+        "url": "https://u.expo.dev/e3ec3313-2c6a-4891-9929-925f3ad9bb76"
+      },
+      "_internal": {
+        "isDebug": false,
+        "projectRoot": "/home/runner/workspace",
+        "dynamicConfigPath": {},
+        "staticConfigPath": "/home/runner/workspace/app.json",
+        "packageJsonPath": "/home/runner/workspace/package.json",
+        "pluginHistory": {
+          "expo-splash-screen": {
+            "name": "expo-splash-screen",
+            "version": "31.0.11"
+          },
+          "expo-web-browser": {
+            "name": "expo-web-browser",
+            "version": "15.0.9"
+          }
+        }
+      },
+      "sdkVersion": "54.0.0",
+      "platforms": [
+        "ios",
+        "android",
+        "web"
+      ],
+      "androidStatusBar": {
+        "backgroundColor": "#FF6600"
+      },
+      "iconUrl": "https://0417d7c6-ea3b-4708-8c6b-9bf75617dc43-00-5eszscfylawu.picard.replit.dev/assets/./assets/images/icon.png",
+      "hostUri": "0417d7c6-ea3b-4708-8c6b-9bf75617dc43-00-5eszscfylawu.picard.replit.dev/ios"
+    },
+    "expoGo": {
+      "debuggerHost": "0417d7c6-ea3b-4708-8c6b-9bf75617dc43-00-5eszscfylawu.picard.replit.dev/ios",
+      "developer": {
+        "tool": "expo-cli",
+        "projectRoot": "/home/runner/workspace"
+      },
+      "packagerOpts": {
+        "dev": false
+      },
+      "mainModuleName": "client/index"
+    },
+    "scopeKey": "@anonymous/top-2000-game-25b0f8bb-7d16-444a-8aac-fc48af13d5d2"
+  }
+}

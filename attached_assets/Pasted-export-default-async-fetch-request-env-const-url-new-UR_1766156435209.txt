@@ -1,0 +1,146 @@
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/login") return redirectToSpotify(env, url);
+    if (url.pathname === "/callback") return handleCallback(request, env);
+    if (url.pathname.startsWith("/sessions/")) {
+      const handshakeId = url.pathname.split("/")[2];
+      return getSession(request, env, handshakeId);
+    }
+    if (url.pathname === "/me") return getProfile(env);
+
+    return new Response("Not Found", { status: 404 });
+  },
+};
+
+/* -------------------- LOGIN -------------------- */
+function redirectToSpotify(env, url) {
+  const handshakeId = url.searchParams.get("handshakeId");
+  const redirectUri = url.searchParams.get("redirectUri");
+
+  const stateObj = { handshakeId, redirectUri };
+  const state = JSON.stringify(stateObj);
+
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: env.SPOTIFY_CLIENT_ID,
+    scope: "user-read-email user-read-private",
+    redirect_uri: env.REDIRECT_URI,
+    state,
+  });
+
+  return Response.redirect(
+    "https://accounts.spotify.com/authorize?" + params.toString(),
+    302
+  );
+}
+
+/* -------------------- CALLBACK -------------------- */
+async function handleCallback(request, env) {
+  const url = new URL(request.url);
+  const code = url.searchParams.get("code");
+  const state = url.searchParams.get("state");
+
+  if (!code) return new Response("No code from Spotify", { status: 400 });
+
+  const tokenRes = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      Authorization:
+        "Basic " + btoa(env.SPOTIFY_CLIENT_ID + ":" + env.SPOTIFY_CLIENT_SECRET),
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: env.REDIRECT_URI,
+    }),
+  });
+
+  const tokens = await tokenRes.json();
+
+  // Parse state for handshake flow
+  let handshakeId, redirectUri;
+  if (state) {
+    try {
+      const stateObj = JSON.parse(state);
+      handshakeId = stateObj.handshakeId;
+      redirectUri = stateObj.redirectUri;
+    } catch {}
+  }
+
+  if (handshakeId) {
+    // Mobile: store tokens keyed by handshakeId, expire in 10 min
+    await env.TOKENS.put(`session_${handshakeId}`, JSON.stringify(tokens), { expirationTtl: 600 });
+  } else {
+    // Web: store normally
+    await env.TOKENS.put("access_token", tokens.access_token);
+    await env.TOKENS.put("refresh_token", tokens.refresh_token);
+  }
+
+  // Mobile redirect if redirectUri exists
+  if (redirectUri && handshakeId) {
+    return Response.redirect(`${redirectUri}?handshakeId=${handshakeId}`, 302);
+  }
+
+  // Web response
+  return new Response(JSON.stringify(tokens, null, 2), { headers: { "Content-Type": "application/json" } });
+}
+
+/* -------------------- SESSION RETRIEVAL -------------------- */
+async function getSession(request, env, handshakeId) {
+  if (!handshakeId) return new Response("Missing handshakeId", { status: 400 });
+
+  const data = await env.TOKENS.get(`session_${handshakeId}`);
+  if (!data) return new Response("No session found", { status: 404 });
+
+  // Optionally delete after reading for security
+  await env.TOKENS.delete(`session_${handshakeId}`);
+
+  return new Response(data, { headers: { "Content-Type": "application/json" } });
+}
+
+/* -------------------- REFRESH TOKEN -------------------- */
+async function refreshAccessToken(env) {
+  const refresh_token = await env.TOKENS.get("refresh_token");
+  if (!refresh_token) throw new Error("No refresh token stored");
+
+  const res = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      Authorization:
+        "Basic " + btoa(env.SPOTIFY_CLIENT_ID + ":" + env.SPOTIFY_CLIENT_SECRET),
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token,
+    }),
+  });
+
+  const data = await res.json();
+  await env.TOKENS.put("access_token", data.access_token);
+  return data.access_token;
+}
+
+/* -------------------- PROFILE /me -------------------- */
+async function getProfile(env) {
+  let token = await env.TOKENS.get("access_token");
+  if (!token) return new Response("No access token, login first", { status: 401 });
+
+  let res = await fetch("https://api.spotify.com/v1/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (res.status === 401) {
+    // refresh token if expired
+    token = await refreshAccessToken(env);
+    res = await fetch("https://api.spotify.com/v1/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  const body = await res.text();
+  return new Response(body, { headers: { "Content-Type": "application/json" } });
+}
