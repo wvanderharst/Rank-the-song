@@ -153,10 +153,11 @@ async function fetchText(url: string): Promise<string> {
 }
 
 const HEADER_PATTERNS = {
-  placement: /^(positie|pos|nr|no|nummer|notering|rank|ranking|position|plaats)$/,
-  title: /^(titel|title|track|song|naam|name|tracktitle)$/,
+  placement: /^(positie|pos|nr|no|notering|rank|ranking|position|plaats)$/,
+  // "Nummer" means "song" in Dutch (top2000.info uses it for the title column).
+  title: /^(titel|title|track|song|nummer|naam|name|tracktitle)$/,
   artist: /^(artiest|artist|artiesten|artists|artistname|uitvoerende)$/,
-  year: /^(jaar|year|releaseyear|jaartal)$/,
+  year: /^(jaar|year|releaseyear|jaartal|jaarvanuitgave|uitgavejaar)$/,
 };
 
 function headerName(cell: string): string {
@@ -351,7 +352,7 @@ async function entriesFromPage(html: string, pageUrl: string): Promise<ListEntry
 function logLinks(html: string, pageUrl: string) {
   if (!DRY_RUN) return;
   const links = urlsInPage(html).filter((url) =>
-    /top-?2000|chart|lijst|xls|csv|pdf|download|api|cms-assets/i.test(url) && !/\.(png|jpe?g|webp|svg|css|js)(\?|$)/i.test(url),
+    /top-?2000|chart|lijst|xls|csv|pdf|download|api|cms-assets|page|pagina|offset|year/i.test(url) && !/\.(png|jpe?g|webp|svg|css|js)(\?|$)/i.test(url),
   );
   console.log(`${pageUrl}: ${links.length} relevant links:\n  ${links.slice(0, 80).join("\n  ")}`);
   const nextData = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
