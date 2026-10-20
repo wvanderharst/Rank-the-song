@@ -738,6 +738,7 @@ export default function ChainGameScreen() {
             <GameButton onPress={handleRestart} title="Play Again" variant="primary" />
           </View>
         </View>
+        <AdBanner />
       </ThemedView>
     );
   }

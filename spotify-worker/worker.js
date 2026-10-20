@@ -1,9 +1,11 @@
 // Spotify login service for Rank The Song (Cloudflare Worker).
 //
-// Flow: the app opens /login?handshakeId=<random id>, the user logs in at
-// Spotify, Spotify sends them to /callback, and the tokens are kept for 10
-// minutes under that handshake id. The app polls /sessions/<id> to pick them up
-// and later renews them with POST /refresh.
+// Flow: the app opens /login?handshakeId=<random id>&redirectUri=<return url>,
+// the user logs in at Spotify, Spotify sends them to /callback, and the tokens
+// are kept for 10 minutes under that handshake id. The user is then sent back
+// to <return url>?handshakeId=<id> (the website, or the phone app via its
+// top2000game:// link), where the app picks the tokens up from /sessions/<id>.
+// The app later renews them with POST /refresh.
 //
 // Needs: KV namespace bound as TOKENS, and the variables SPOTIFY_CLIENT_ID,
 // SPOTIFY_CLIENT_SECRET (secret) and REDIRECT_URI (this worker's /callback URL,
@@ -18,8 +20,16 @@ const SCOPES = [
   "streaming",
 ].join(" ");
 
-// Only the app's own URL scheme may be used to send the user back after login.
-const ALLOWED_REDIRECT_PREFIX = "top2000game://";
+// Addresses the user may be sent back to after login. Add your own domain here
+// if the website moves (e.g. "https://www.example.com/").
+const ALLOWED_REDIRECT_PREFIXES = [
+  "top2000game://",
+  "https://wvanderharst.github.io/Rank-the-song/",
+];
+
+function isAllowedRedirect(redirectUri) {
+  return !!redirectUri && ALLOWED_REDIRECT_PREFIXES.some((prefix) => redirectUri.startsWith(prefix));
+}
 
 const HANDSHAKE_ID_PATTERN = /^[0-9a-f]{32}$/;
 
@@ -78,7 +88,7 @@ function redirectToSpotify(env, url) {
   const redirectUri = url.searchParams.get("redirectUri");
   const state = JSON.stringify({
     handshakeId,
-    redirectUri: redirectUri && redirectUri.startsWith(ALLOWED_REDIRECT_PREFIX) ? redirectUri : null,
+    redirectUri: isAllowedRedirect(redirectUri) ? redirectUri : null,
   });
 
   const params = new URLSearchParams({
@@ -94,16 +104,21 @@ function redirectToSpotify(env, url) {
 
 /* -------------------- CALLBACK -------------------- */
 async function handleCallback(env, url) {
-  const code = url.searchParams.get("code");
-  if (!code) {
-    return resultPage("Spotify login was cancelled", "You can close this window and try again.");
-  }
-
   let handshakeId = null;
   let redirectUri = null;
   try {
     ({ handshakeId, redirectUri } = JSON.parse(url.searchParams.get("state") || "{}"));
   } catch {}
+
+  const code = url.searchParams.get("code");
+  if (!code) {
+    // Cancelled at Spotify: send the user back without a login.
+    if (isAllowedRedirect(redirectUri)) {
+      return Response.redirect(redirectUri, 302);
+    }
+    return resultPage("Spotify login was cancelled", "You can close this window and try again.");
+  }
+
   if (!handshakeId || !HANDSHAKE_ID_PATTERN.test(handshakeId)) {
     return new Response("Invalid login state", { status: 400 });
   }
@@ -121,8 +136,10 @@ async function handleCallback(env, url) {
   // Each login gets its own entry, picked up once by the app via /sessions/<id>.
   await env.TOKENS.put(`session_${handshakeId}`, JSON.stringify(tokens), { expirationTtl: 600 });
 
-  if (redirectUri && redirectUri.startsWith(ALLOWED_REDIRECT_PREFIX)) {
-    return Response.redirect(`${redirectUri}?handshakeId=${handshakeId}`, 302);
+  if (isAllowedRedirect(redirectUri)) {
+    const back = new URL(redirectUri);
+    back.searchParams.set("handshakeId", handshakeId);
+    return Response.redirect(back.toString(), 302);
   }
 
   return resultPage("Spotify connected!", "You can close this window and go back to the game.");

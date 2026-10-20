@@ -6,6 +6,28 @@ import * as Crypto from "expo-crypto";
 
 const OAUTH_BASE_URL = "https://spotify-oauth.wouter-van-der-harst.workers.dev";
 
+// Where the login service sends the user back after logging in at Spotify. The
+// login service only accepts addresses on its allow list (spotify-worker/worker.js).
+const APP_RETURN_URL = "top2000game://oauth-complete";
+
+function getReturnUrl(): string {
+  if (Platform.OS === "web") {
+    return `${window.location.origin}${window.location.pathname}`;
+  }
+  return APP_RETURN_URL;
+}
+
+// Back on the website after logging in: take the handshake id out of the address bar.
+function takeHandshakeIdFromPageUrl(): string | null {
+  if (Platform.OS !== "web" || typeof window === "undefined") return null;
+  const url = new URL(window.location.href);
+  const handshakeId = url.searchParams.get("handshakeId");
+  if (!handshakeId) return null;
+  url.searchParams.delete("handshakeId");
+  window.history.replaceState(null, "", url.toString());
+  return handshakeId;
+}
+
 interface SpotifyTokens {
   accessToken: string;
   refreshToken: string;
@@ -72,16 +94,6 @@ export function SpotifyAuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const pendingHandshakeRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    loadTokens().then((savedTokens) => {
-      // Expired tokens are kept when they can be renewed with the refresh token.
-      if (savedTokens && (savedTokens.expiresAt > Date.now() || savedTokens.refreshToken)) {
-        setTokens(savedTokens);
-      }
-      setIsLoading(false);
-    });
-  }, []);
-
   const fetchTokensByHandshake = useCallback(async (handshakeId: string): Promise<boolean> => {
     try {
       setIsLoading(true);
@@ -126,6 +138,24 @@ export function SpotifyAuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    const restoreLogin = async () => {
+      const returnedHandshakeId = takeHandshakeIdFromPageUrl();
+      if (returnedHandshakeId && (await fetchTokensByHandshake(returnedHandshakeId))) {
+        return;
+      }
+
+      const savedTokens = await loadTokens();
+      // Expired tokens are kept when they can be renewed with the refresh token.
+      if (savedTokens && (savedTokens.expiresAt > Date.now() || savedTokens.refreshToken)) {
+        setTokens(savedTokens);
+      }
+      setIsLoading(false);
+    };
+
+    restoreLogin();
+  }, [fetchTokensByHandshake]);
 
   const refreshTokens = useCallback(async (refreshToken: string): Promise<SpotifyTokens | null> => {
     try {
@@ -231,19 +261,23 @@ export function SpotifyAuthProvider({ children }: { children: ReactNode }) {
     const handshakeId = await generateHandshakeId();
     pendingHandshakeRef.current = handshakeId;
 
-    const loginUrl = `${OAUTH_BASE_URL}/login?handshakeId=${handshakeId}`;
+    const loginUrl =
+      `${OAUTH_BASE_URL}/login?handshakeId=${handshakeId}` +
+      `&redirectUri=${encodeURIComponent(getReturnUrl())}`;
     console.log(`[Spotify Auth] Opening login: ${loginUrl}`);
 
-    let popup: Window | null = null;
     if (Platform.OS === "web") {
-      popup = window.open(loginUrl, "_blank", "width=500,height=700");
-    } else {
-      await Linking.openURL(loginUrl);
+      // The login service sends the browser back here with ?handshakeId=...,
+      // which is picked up when the page loads again.
+      window.location.assign(loginUrl);
+      return;
     }
 
-    // The login service keeps the tokens under the handshake id until we fetch them.
-    // Poll for them instead of waiting for the popup to close: Spotify's login page
-    // can cut the link to the popup, so popup.closed is not reliable.
+    await Linking.openURL(loginUrl);
+
+    // The app is opened again via top2000game://oauth-complete (deep link
+    // handler above). Polling is the fallback for when that link does not open
+    // the app, e.g. in Expo Go.
     const maxAttempts = 150;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -253,9 +287,6 @@ export function SpotifyAuthProvider({ children }: { children: ReactNode }) {
 
       if (await fetchTokensByHandshake(handshakeId)) {
         console.log(`[Spotify Auth] Tokens retrieved successfully!`);
-        try {
-          popup?.close();
-        } catch {}
         return;
       }
     }

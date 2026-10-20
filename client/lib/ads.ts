@@ -1,10 +1,14 @@
 import { Platform } from "react-native";
 
-// Real interstitial ad unit per platform. iOS needs its own app + ad unit in
-// AdMob; until IOS_AD_UNIT_ID is filled in, iOS release builds show no ads.
+// Real interstitial ad unit per platform. Fill in IOS_AD_UNIT_ID with the
+// interstitial ad unit of your iOS app in AdMob (and IOS_ADMOB_APP_ID in
+// app.config.js). While it still contains "X", iPhone release builds show no ads.
 const ANDROID_AD_UNIT_ID = "ca-app-pub-1303789001048468/1137972134";
-const IOS_AD_UNIT_ID = "";
-const AD_UNIT_ID = Platform.OS === "ios" ? IOS_AD_UNIT_ID : ANDROID_AD_UNIT_ID;
+const IOS_AD_UNIT_ID = "ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX";
+const AD_UNIT_ID =
+  Platform.OS === "ios"
+    ? (IOS_AD_UNIT_ID.includes("X") ? "" : IOS_AD_UNIT_ID)
+    : ANDROID_AD_UNIT_ID;
 const TEST_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712";
 const RETRY_AFTER_ERROR_MS = 60 * 1000;
 
