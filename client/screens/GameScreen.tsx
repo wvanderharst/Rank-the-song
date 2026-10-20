@@ -7,6 +7,7 @@ import {
   Platform,
   Linking,
   Pressable,
+  ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -28,8 +29,13 @@ import { Spacing, BorderRadius, Colors } from "@/constants/theme";
 import { useSettings } from "@/context/SettingsContext";
 import { useSpotifyAuth } from "@/context/SpotifyAuthContext";
 import { Song } from "@shared/songs-data";
+<<<<<<< HEAD
 import { getRandomSong as getRandomSongFromList, getSongCount } from "@/lib/song-manager";
 import { useAdManager } from "@/hooks/useAds";
+=======
+import { pickRandomSong } from "@/lib/songs";
+import { AdBanner } from "@/components/AdBanner";
+>>>>>>> 1459cc205ec75c553597f6d7c5a21610b0c1052d
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const PLAYER_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
@@ -429,8 +435,12 @@ export default function GameScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const { theme, isDark } = useTheme();
+<<<<<<< HEAD
   const { playMode, addToHistory, songHistory } = useSettings();
   const { onSongLoaded, tryShowAd } = useAdManager();
+=======
+  const { playMode, addToHistory, songHistory, selectedSongList } = useSettings();
+>>>>>>> 1459cc205ec75c553597f6d7c5a21610b0c1052d
   const playerRef = useRef<YoutubeIframeRef>(null);
 
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
@@ -439,17 +449,26 @@ export default function GameScreen() {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [isLoadingSong, setIsLoadingSong] = useState(false);
 
+<<<<<<< HEAD
   const pickRandomSong = useCallback((excludeCurrentId?: number): Song | null => {
+=======
+  const fetchRandomSong = useCallback(async (excludeCurrentId?: number): Promise<Song | null> => {
+>>>>>>> 1459cc205ec75c553597f6d7c5a21610b0c1052d
     const historyIds = new Set(songHistory.map(s => s.id));
     if (excludeCurrentId !== undefined) {
       historyIds.add(excludeCurrentId);
     }
+<<<<<<< HEAD
     
     const totalSongs = getSongCount();
     const shouldAvoidDuplicates = historyIds.size < totalSongs * 0.7;
     
     return getRandomSongFromList(shouldAvoidDuplicates ? historyIds : undefined);
   }, [songHistory]);
+=======
+    return pickRandomSong(selectedSongList, historyIds);
+  }, [songHistory, selectedSongList]);
+>>>>>>> 1459cc205ec75c553597f6d7c5a21610b0c1052d
 
   const onPlayerReady = useCallback(() => {
     setIsPlayerReady(true);
@@ -510,15 +529,16 @@ export default function GameScreen() {
   }, [currentSong, addToHistory, onSongLoaded, tryShowAd]);
 
   return (
-    <ThemedView
-      style={[
-        styles.container,
-        {
-          paddingTop: headerHeight + Spacing.xl,
-          paddingBottom: insets.bottom + Spacing.xl,
-        },
-      ]}
-    >
+    <ThemedView style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop: headerHeight + Spacing.xl,
+            paddingBottom: insets.bottom + Spacing.xl,
+          },
+        ]}
+      >
       <View style={styles.playerContainer}>
         {playMode === "youtube" ? (
           <View style={styles.youtubeSection}>
@@ -691,13 +711,18 @@ export default function GameScreen() {
           disabled={!currentSong}
         />
       </View>
+      <AdBanner />
+      </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
+  },
+  container: {
+    flexGrow: 1,
     paddingHorizontal: Spacing.lg,
   },
   playerContainer: {

@@ -1,0 +1,66 @@
+name: Deploy website to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Set these under Settings → Secrets and variables → Actions → Variables.
+      EXPO_PUBLIC_ADSENSE_CLIENT: ${{ vars.ADSENSE_CLIENT }}
+      EXPO_PUBLIC_ADSENSE_SLOT: ${{ vars.ADSENSE_SLOT }}
+      # With a custom domain the site lives at the root; otherwise at /<repo>.
+      WEB_BASE_PATH: ${{ vars.CUSTOM_DOMAIN == '' && format('/{0}', github.event.repository.name) || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build web app
+        run: npx expo export --platform web --output-dir dist
+
+      - name: Add AdSense, ads.txt, custom domain and SPA fallback
+        env:
+          CUSTOM_DOMAIN: ${{ vars.CUSTOM_DOMAIN }}
+        run: |
+          if [ -n "$EXPO_PUBLIC_ADSENSE_CLIENT" ]; then
+            tag="<script id=\"adsbygoogle-js\" async src=\"https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${EXPO_PUBLIC_ADSENSE_CLIENT}\" crossorigin=\"anonymous\"></script>"
+            sed -i "s#</head>#${tag}</head>#" dist/index.html
+            echo "google.com, ${EXPO_PUBLIC_ADSENSE_CLIENT#ca-}, DIRECT, f08c47fec0942fa0" > dist/ads.txt
+          fi
+          if [ -n "$CUSTOM_DOMAIN" ]; then
+            echo "$CUSTOM_DOMAIN" > dist/CNAME
+          fi
+          cp dist/index.html dist/404.html
+          touch dist/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
