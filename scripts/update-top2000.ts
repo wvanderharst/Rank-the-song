@@ -89,7 +89,8 @@ function readSongFile(file: string): Song[] {
 
 function normalize(text: string, dropBrackets = false): string {
   let s = text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  if (dropBrackets) s = s.replace(/\([^)]*\)|\[[^\]]*\]/g, " ");
+  // Looser key: without "(Live)", "[Remastered]" or Spotify-style " - 2013 Remaster" additions.
+  if (dropBrackets) s = s.replace(/\([^)]*\)|\[[^\]]*\]/g, " ").replace(/\s-\s.*$/, " ");
   return s
     .replace(/\s(feat\.?|ft\.?|featuring)\s.*$/, " ")
     .replace(/&/g, " and ")
@@ -103,14 +104,15 @@ function songKey(artist: string, title: string, dropBrackets = false): string {
 
 type Known = { youtubeId: string; spotifyUri: string | null; year: number };
 
-// Lookup of songs we already have, newest Top 2000 lists first so their data wins.
+// Lookup of songs we already have in any list. When a song is in several lists,
+// the first one wins: Top 2000 lists (newest first), then the Radio 10 Top 4000,
+// then all other lists.
 function loadKnownSongs(): Map<string, Known> {
+  const priority = (f: string) => (f.startsWith("top2000_top") ? 0 : /top_4000/.test(f) ? 1 : 2);
   const files = fs.readdirSync(EMBEDDED_DIR)
     .filter((f) => f.endsWith(".ts") && f !== "index.ts")
-    .sort((a, b) => {
-      const top = (f: string) => (f.startsWith("top2000_top") ? 0 : 1);
-      return top(a) - top(b) || b.localeCompare(a);
-    });
+    .sort((a, b) => priority(a) - priority(b) || b.localeCompare(a));
+  console.log(`Looking for known songs in: ${files.slice(0, 3).join(", ")} and ${files.length - 3} other lists`);
 
   const known = new Map<string, Known>();
   for (const file of files) {
